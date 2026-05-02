@@ -354,6 +354,7 @@ export function parseDialog(raw) {
     exp: '',
     money: '',
     numberNeeded: false,
+    hasQuantity: false,
     input: '',
     okCommands: [],
     cancelCommand: ''
@@ -361,7 +362,9 @@ export function parseDialog(raw) {
   String(raw || '').split('$dh#').forEach((piece) => {
     if (!piece) return;
     if (piece.startsWith('ok11.')) {
-      dialog.okCommands.push(...piece.slice(5).split('$sock#').filter(Boolean));
+      const cmds = piece.slice(5).split('$sock#').filter(Boolean);
+      dialog.okCommands.push(...cmds);
+      if (cmds.some(c => c.includes('$N'))) dialog.hasQuantity = true;
       return;
     }
     if (piece.startsWith('no11.')) {
@@ -397,6 +400,45 @@ export function parseDialog(raw) {
     });
   });
   return dialog;
+}
+
+export function parseMapView(raw) {
+  return { html: raw };
+}
+
+export function parseFloatingText(raw) {
+  const text = String(raw || '');
+  // 格式: "文字内容" 或 "文字内容#颜色码"
+  const hashIdx = text.lastIndexOf('#');
+  if (hashIdx !== -1 && hashIdx < text.length - 1) {
+    const possibleColor = text.slice(hashIdx + 1);
+    // 颜色码应该是短的（如 "R" 红色 或 "#ff0000" 格式）
+    if (/^[a-fA-F0-9]{3,8}$/.test(possibleColor) || /^[a-zA-Z]+$/.test(possibleColor)) {
+      return { text: text.slice(0, hashIdx), color: possibleColor };
+    }
+  }
+  return { text, color: '' };
+}
+
+export function parseWebView(raw) {
+  return { url: String(raw || '').trim() };
+}
+
+export function parseReconnect(raw) {
+  const text = String(raw || '').trim();
+  const colonIdx = text.lastIndexOf(':');
+  if (colonIdx !== -1) {
+    return {
+      host: text.slice(0, colonIdx),
+      port: text.slice(colonIdx + 1)
+    };
+  }
+  return { host: text, port: '' };
+}
+
+export function parseCommandHistoryMode(raw) {
+  const code = String(raw || '').trim();
+  return { enabled: code === '998' };
 }
 
 export { ESC, escapeHtml };
