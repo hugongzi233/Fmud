@@ -28,6 +28,10 @@
 
 * { box-sizing: border-box; }
 html, body, #app { height: 100%; margin: 0; }
+html {
+  scrollbar-color: #555555 #1a1a1a;
+  scrollbar-width: thin;
+}
 body {
  font-family: -apple-system,BlinkMacSystemFont,Helvetica Neue,PingFang SC,Microsoft YaHei,Source Han Sans SC,Noto Sans CJK SC,WenQuanYi Micro Hei,sans-serif;
   font-feature-settings: 'liga' 0, 'calt' 0;
@@ -111,8 +115,7 @@ button:active { transform: translateY(1px); }
 .side-card { display:flex; flex-direction:column; }
 .card-header, .overlay-header {
   display:flex; align-items:center; justify-content:space-between; gap:12px;
-  padding:6px 12px; border-bottom:1px solid var(--outline);
-  background: var(--surface-2);
+  padding:6px 12px;
 }
 .card-title { font-size: 13px; font-weight: 800; }
 .card-sub { font-size: 11px; color: var(--muted); margin-top:3px; line-height:1.45; }
@@ -227,6 +230,12 @@ button:active { transform: translateY(1px); }
 .mud-action span, .quick-btn span, .command-btn span { font-size: 10px; color: var(--muted); }
 .mud-action.primary { background:#152132; border-color: var(--primary); }
 .mud-action.primary { background: linear-gradient(180deg, #352416, #24170f); border-color: rgba(230,191,107,0.8); color: #ffe7bf; }
+
+/* ✅ 默认隐藏 caption */
+.command-btn .caption {
+  display: none;
+}
+
 .status-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:10px; }
 .bar-card { padding:10px; }
 .bar-head { display:flex; justify-content:space-between; gap:10px; align-items:center; font-size:11px; margin-bottom:7px; }
@@ -246,8 +255,8 @@ button:active { transform: translateY(1px); }
 .gui-tab { min-height: 30px; padding: 0 12px; border:1px solid var(--outline); background: var(--surface-2); color: var(--text); border-radius: 999px; }
 .gui-tab.active { background: linear-gradient(180deg, #3a2718, #24170e); color:#ffe7bf; border-color: rgba(230,191,107,0.45); }
 .gui-main { border:1px solid var(--outline); background: rgba(0,0,0,0.08); padding: 12px; border-radius: 8px; min-height: 180px; overflow:auto; }
-.gui-actions { display:grid; gap:10px; }
-.action-section { display:grid; gap:10px; margin-bottom: 12px; }
+.gui-actions { display: flex; flex-direction: column; gap: 10px; max-width: 800px; width: 100%; }
+.action-section { display: grid; gap: 10px; margin-bottom: 12px; }
 .action-section:last-child { margin-bottom: 0; }
 .status-pill, .chip { display:inline-flex; align-items:center; gap:8px; height:28px; padding:0 10px; border:1px solid var(--outline); background: var(--surface-2); font-size:12px; }
 .top-message {
@@ -477,8 +486,4 @@ button:active { transform: translateY(1px); }
   background: #1a1a1a;
 }
 
-/* Firefox 浏览器 */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: #555555 #1a1a1a;
-}
+/* ✅ PC 输入框样式 */

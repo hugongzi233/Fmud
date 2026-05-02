@@ -6,16 +6,16 @@
                 <button class="gui-close-btn" @click="safeMud.closeGui">×</button>
                 <div class="overlay-body gui-body">
                     <div class="gui-content" v-if="safeMud.guiHtml" v-html="safeMud.guiHtml"></div>
-                    <div class="gui-actions" v-if="safeMud.guiActions1.length || safeMud.guiActions2.length" :style="{ gridTemplateColumns: `repeat(${safeMud.guiColumns || 3}, minmax(0, 1fr))` }">
-                        <div class="action-section" v-if="safeMud.guiActions1.length" :style="{ gridTemplateColumns: `repeat(${safeMud.guiColumns || 3}, minmax(0, 1fr))` }">
-                            <button class="command-btn" v-for="item in safeMud.guiActions1" :key="item.key" @click="safeMud.sendCommand(item.cmd)">
+                    <div class="gui-actions" v-if="safeMud.guiActions1.length || safeMud.guiActions2.length" style="display: flex; flex-direction: column; gap: 10px; max-width: 800px; width: 100%;">
+                        <div class="action-section" v-if="safeMud.guiActions1.length" :style="{ display: 'grid', gridTemplateColumns: `repeat(${safeMud.guiColumns || 3}, minmax(140px, 1fr))`, gap: '10px' }">
+                            <button class="command-btn" v-for="item in safeMud.guiActions1" :key="item.key" @click="handleGuiActionClick(item)">
                                 <div v-html="item.labelHtml"></div>
                                 <div class="caption" v-if="item.captionHtml" v-html="item.captionHtml"></div>
                                 <div class="caption" v-else>{{ item.caption || item.cmd }}</div>
                             </button>
                         </div>
-                        <div class="action-section" v-if="safeMud.guiActions2.length" :style="{ gridTemplateColumns: `repeat(${safeMud.guiColumns || 3}, minmax(0, 1fr))` }">
-                            <button class="command-btn" v-for="item in safeMud.guiActions2" :key="item.key" @click="safeMud.sendCommand(item.cmd)">
+                        <div class="action-section" v-if="safeMud.guiActions2.length" :style="{ display: 'grid', gridTemplateColumns: `repeat(${safeMud.guiColumns || 3}, minmax(140px, 1fr))`, gap: '10px' }">
+                            <button class="command-btn" v-for="item in safeMud.guiActions2" :key="item.key" @click="handleGuiActionClick(item)">
                                 <div v-html="item.labelHtml"></div>
                                 <div class="caption" v-if="item.captionHtml" v-html="item.captionHtml"></div>
                                 <div class="caption" v-else>{{ item.caption || item.cmd }}</div>
@@ -53,13 +53,13 @@
                         <!-- 007 消息附加的 HTML 内容 -->
                         <div v-if="safeMud.actionBlocks[0].guiHtml" class="gui-content" v-html="safeMud.actionBlocks[0].guiHtml" @click="handleGuiContentClick"></div>
                         <!-- 008 消息附加的按钮组 -->
-                        <div v-if="safeMud.actionBlocks[0].guiActions1 && safeMud.actionBlocks[0].guiActions1.length" class="gui-actions" :style="{ gridTemplateColumns: `repeat(${safeMud.actionBlocks[0].guiColumns || 3}, minmax(0, 1fr))` }">
+                        <div v-if="safeMud.actionBlocks[0].guiActions1 && safeMud.actionBlocks[0].guiActions1.length" class="gui-actions" :style="{ gridTemplateColumns: `repeat(${safeMud.actionBlocks[0].guiColumns || 3}, minmax(140px, 1fr))`, maxWidth: '800px', width: '100%' }">
                             <button class="command-btn" v-for="item in safeMud.actionBlocks[0].guiActions1" :key="item.key" @click="handleActionItemClick(item)">
                                 <div v-html="item.labelHtml"></div>
                             </button>
                         </div>
                         <!-- 009 消息附加的按钮组 -->
-                        <div v-if="safeMud.actionBlocks[0].guiButtons && safeMud.actionBlocks[0].guiButtons.length" class="gui-actions" :style="{ gridTemplateColumns: `repeat(${safeMud.actionBlocks[0].guiColumns || 3}, minmax(0, 1fr))` }">
+                        <div v-if="safeMud.actionBlocks[0].guiButtons && safeMud.actionBlocks[0].guiButtons.length" class="gui-actions" :style="{ gridTemplateColumns: `repeat(${safeMud.actionBlocks[0].guiColumns || 3}, minmax(140px, 1fr))`, maxWidth: '800px', width: '100%' }">
                             <button class="command-btn" v-for="item in safeMud.actionBlocks[0].guiButtons" :key="item.key" @click="handleActionItemClick(item)">
                                 <div v-html="item.labelHtml"></div>
                             </button>
@@ -68,17 +68,17 @@
                     <!-- GUI 内容类型（007/008/009 消息） -->
                     <div v-else-if="safeMud.actionBlocks[0].kind === 'gui'" class="gui-body">
                         <div class="gui-content" v-if="safeMud.actionBlocks[0].guiHtml" v-html="safeMud.actionBlocks[0].guiHtml" @click="handleGuiContentClick"></div>
-                        <div class="gui-actions" v-if="safeMud.actionBlocks[0].guiActions1 && safeMud.actionBlocks[0].guiActions1.length" :style="{ gridTemplateColumns: `repeat(${safeMud.actionBlocks[0].guiColumns || 3}, minmax(0, 1fr))` }">
+                        <div class="gui-actions" v-if="safeMud.actionBlocks[0].guiActions1 && safeMud.actionBlocks[0].guiActions1.length" :style="{ gridTemplateColumns: `repeat(${safeMud.actionBlocks[0].guiColumns || 3}, minmax(140px, 1fr))`, maxWidth: '800px', width: '100%' }">
                             <button class="command-btn" v-for="item in safeMud.actionBlocks[0].guiActions1" :key="item.key" @click="handleActionItemClick(item)">
                                 <div v-html="item.labelHtml"></div>
                             </button>
                         </div>
-                        <div class="gui-actions" v-if="safeMud.actionBlocks[0].guiButtons && safeMud.actionBlocks[0].guiButtons.length" :style="{ gridTemplateColumns: `repeat(${safeMud.actionBlocks[0].guiColumns || 3}, minmax(0, 1fr))` }">
+                        <div class="gui-actions" v-if="safeMud.actionBlocks[0].guiButtons && safeMud.actionBlocks[0].guiButtons.length" :style="{ gridTemplateColumns: `repeat(${safeMud.actionBlocks[0].guiColumns || 3}, minmax(140px, 1fr))`, maxWidth: '800px', width: '100%' }">
                             <button class="command-btn" v-for="item in safeMud.actionBlocks[0].guiButtons" :key="item.key" @click="handleActionItemClick(item)">
                                 <div v-html="item.labelHtml"></div>
                             </button>
                         </div>
-                        <div class="gui-actions" v-if="safeMud.actionBlocks[0].items && safeMud.actionBlocks[0].items.length" :style="{ gridTemplateColumns: `repeat(${safeMud.actionBlocks[0].cols || 3}, minmax(0, 1fr))` }">
+                        <div class="gui-actions" v-if="safeMud.actionBlocks[0].items && safeMud.actionBlocks[0].items.length" :style="{ gridTemplateColumns: `repeat(${safeMud.actionBlocks[0].cols || 3}, minmax(140px, 1fr))`, maxWidth: '800px', width: '100%' }">
                             <button class="command-btn" v-for="item in safeMud.actionBlocks[0].items" :key="item.key" @click="handleActionItemClick(item)">
                                 <div v-html="item.labelHtml"></div>
                             </button>
@@ -171,6 +171,14 @@ export default {
       }
     };
     
+    const handleGuiActionClick = (item) => {
+      if (item.cmd) {
+        safeMud.sendCommand(item.cmd);
+      }
+      // ✅ 点击 GUI 弹窗中的按钮后关闭弹窗
+      safeMud.closeGui();
+    };
+    
     const handleTextInputSubmit = () => {
       if (!safeMud.actionBlocks || safeMud.actionBlocks.length === 0) return;
       
@@ -224,7 +232,8 @@ export default {
       handleActionItemClick,
       handleTextInputSubmit,
       handleOverlayClick,
-      handleGuiContentClick
+      handleGuiContentClick,
+      handleGuiActionClick
     };
   }
 }
