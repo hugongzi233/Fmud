@@ -8,6 +8,7 @@ import {
   parseTargetItems,
   parseStatusBars,
   parseDialog,
+  parseQuickCmds,
   escapeHtml
 } from './protocol.js';
 
@@ -26,7 +27,8 @@ function extractGuiTitle(payload) {
   const text = String(payload || '');
   const quoted = text.match(/「([^」]+)」/);
   if (quoted && quoted[1]) return quoted[1].trim();
-  const firstLine = text.replace(/\u001b\[[0-9;?]*[A-Za-z]/g, '').split('$br#')[0].trim();
+  // 先尝试移除带ESC的ANSI代码，再尝试移除不带ESC的ANSI代码
+  let firstLine = text.replace(/\u001b\[[0-9;?]*[A-Za-z]/g, '').replace(/\[[0-9;?]*m/g, '').split('$br#')[0].trim();
   if (!firstLine) return 'GUI';
   const short = firstLine.replace(/\(.+\)$/, '').trim();
   return short || firstLine;
@@ -57,6 +59,8 @@ const mudAppOptions = {
       showWeb: false,
       showGui: false,
       guiTitle: '',
+      guiTitleHtml: '',
+      guiColumns: 3,
       guiHtml: '',
       guiActions: [],
       guiActions1: [],
@@ -416,33 +420,40 @@ const mudAppOptions = {
               return;
             }
             const code = rest.slice(1, 4);
+                        // 对于012状态栏和006自定义命令，直接消费到末尾
+            let consumeLength = rest.length;
             
-            // 对于某些消息类型（如012状态栏、006自定义命令），消费到文本末尾
-            // 因为这些消息的payload中可能包含多个ESC序列（如ANSI颜色代码）
-            let consumeLength;
             if (code === '012' || code === '006') {
-              // 这些消息消费到文本末尾，不查找下一个ESC
+              // 这些消息包含大量ANSI颜色代码，直接消费到末尾
               consumeLength = rest.length;
             } else {
-              // 其他消息类型正常查找ESC和零前缀
-              const nextEscIdx = rest.indexOf('\u001b', 4);
-              const nextZeroMatch = rest.slice(4).match(/0{3,}\d{1,3}/);
-              const nextZeroIdx = nextZeroMatch ? (4 + rest.slice(4).indexOf(nextZeroMatch[0])) : -1;
-              
-              if (nextEscIdx !== -1 && (nextZeroIdx === -1 || nextEscIdx <= nextZeroIdx)) {
-                consumeLength = nextEscIdx;
-              } else if (nextZeroIdx !== -1) {
-                consumeLength = nextZeroIdx;
-              } else {
-                consumeLength = rest.length;
+              // 其他消息类型正常查找ESC边界
+              let searchPos = 4;
+              while (searchPos < rest.length) {
+                const nextEscIdx = rest.indexOf('\u001b', searchPos);
+                if (nextEscIdx === -1) break;
+                
+                if (nextEscIdx + 4 <= rest.length) {
+                  const nextCode = rest.slice(nextEscIdx + 1, nextEscIdx + 4);
+                  if (/^\d{3}$/.test(nextCode)) {
+                    consumeLength = nextEscIdx;
+                    break;
+                  }
+                }
+                
+                const seqEnd = rest.indexOf('m', nextEscIdx);
+                if (seqEnd !== -1) {
+                  searchPos = seqEnd + 1;
+                } else {
+                  searchPos = nextEscIdx + 1;
+                }
               }
             }
-            
             const payload = rest.slice(4, consumeLength);
             try {
               this.handleControlMessage('\u001b' + code + payload);
             } catch (e) {
-              this.appendMain('\u001b' + code + payload);
+              // 不将原始payload回退到主界面，避免显示未解析的协议数据
             }
             // 保留剩余文本继续处理
             rest = rest.slice(consumeLength);
@@ -534,21 +545,34 @@ const mudAppOptions = {
           this.customCmds = parseActionItems(payload, 4).items.map((item, idx) => ({
             key: item.key || `cmd-${idx}`,
             cmd: item.cmd || item.key || '',
-            label: item.label || item.html || ''
+            label: item.label || item.html || '',
+            labelHtml: item.labelHtml || item.html || ''
           }));
           return;
-        case '007':
+        case '905': {
+          // 从targets（物品列表）中移除指定的对象
+          const objId = payload.trim();
+          if (this.targets && this.targets.length > 0) {
+            this.targets = this.targets.filter(target => target.cmd !== objId);
+          }
+          return;
+        }
+        case '007': {
           this.showGui = true;
           this.guiTitle = extractGuiTitle(payload);
+          this.guiTitleHtml = renderMudText(this.guiTitle, createAnsiState(), { mode: 'dark' });
+          this.guiColumns = 3; // 默认3列
+          // 将$br#转换为\n换行符，让renderStyledText内部的replace(/\n/g, '<br/>')处理
           const processedPayload = payload.replace(/\$br#/g, '\n');
-          this.guiHtml = renderMudText(processedPayload, this.gameState.ansi, { mode: this.settings.mode });
-          this.guiActions1 = [];
-          this.guiActions2 = [];
-          this.guiTab = 'main';
+          this.guiHtml = renderMudText(processedPayload, createAnsiState(), { mode: 'dark' });
+          // 不清空guiActions1和guiActions2，等待008/009消息设置
+          this.guiTab = 'content';
           return;
+        }
         case '008': {
           const parsed = parseActionItems(payload);
           this.showGui = true;
+          this.guiColumns = parsed.columns || 3;
           this.guiActions1 = parsed.items;
           this.guiTab = 'actions';
           return;
@@ -556,6 +580,7 @@ const mudAppOptions = {
         case '009': {
           const parsed = parseActionItems(payload);
           this.showGui = true;
+          this.guiColumns = parsed.columns || 3;
           this.guiActions2 = parsed.items;
           this.guiTab = 'actions';
           return;
@@ -568,7 +593,9 @@ const mudAppOptions = {
           this.showMap = true;
           return;
         case '012': {
-          this.statusBars = parseStatusBars(payload);
+          const parsed = parseStatusBars(payload);
+          // 使用splice确保Vue响应式更新
+          this.statusBars.splice(0, this.statusBars.length, ...parsed);
           return;
         }
         case '013':
@@ -592,7 +619,7 @@ const mudAppOptions = {
           return;
         }
         case '021': {
-          const parsed = parseActionItems(payload, 4);
+          const parsed = parseQuickCmds(payload);
           this.quickCmds = parsed.items;
           return;
         }
@@ -696,7 +723,7 @@ const mudAppOptions = {
               });
               break;
             }
-          }
+                     }
         }
       }
     },
@@ -733,7 +760,8 @@ const mudAppOptions = {
       this.storyVisible = !this.storyVisible;
     },
     updateLocationName(name) {
-      this.locationName = name;
+      // 移除ANSI代码（包括带ESC和不带ESC的）
+      this.locationName = String(name || '').replace(/\u001b\[[0-9;?]*[A-Za-z]/g, '').replace(/\[[0-9;?]*m/g, '').trim();
     },
     submitDialog() {
       if (this.dialog.okCommands.length) {

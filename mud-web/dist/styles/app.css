@@ -99,12 +99,35 @@ button:active { transform: translateY(1px); }
 .side-card { display:flex; flex-direction:column; }
 .card-header, .overlay-header {
   display:flex; align-items:center; justify-content:space-between; gap:12px;
-  padding:10px 12px; border-bottom:1px solid var(--outline);
+  padding:6px 12px; border-bottom:1px solid var(--outline);
   background: var(--surface-2);
 }
 .card-title { font-size: 13px; font-weight: 800; }
 .card-sub { font-size: 11px; color: var(--muted); margin-top:3px; line-height:1.45; }
 .card-body, .body, .overlay-body { padding: 10px 12px 12px; min-height:0; overflow:auto; flex:1; }
+.gui-body { position: relative; }
+.gui-close-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  font-size: 20px;
+  line-height: 1;
+  padding: 0;
+  background: rgba(0, 0, 0, 0.3);
+  color: #ccc;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.2s;
+}
+.gui-close-btn:hover {
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+}
+.gui-content { white-space: normal; line-height: 1.6; }
 .hero { display:flex; flex-direction:column; }
 .hero-actions, .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
 .row.end { justify-content:flex-end; }
@@ -190,8 +213,8 @@ button:active { transform: translateY(1px); }
 .gui-tab { min-height: 30px; padding: 0 12px; border:1px solid var(--outline); background: var(--surface-2); color: var(--text); border-radius: 999px; }
 .gui-tab.active { background: linear-gradient(180deg, #3a2718, #24170e); color:#ffe7bf; border-color: rgba(230,191,107,0.45); }
 .gui-main { border:1px solid var(--outline); background: rgba(0,0,0,0.08); padding: 12px; border-radius: 8px; min-height: 180px; overflow:auto; }
-.gui-actions { display:grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap:10px; }
-.action-section { display:grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap:10px; margin-bottom: 12px; }
+.gui-actions { display:grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap:10px; }
+.action-section { display:grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap:10px; margin-bottom: 12px; }
 .action-section:last-child { margin-bottom: 0; }
 .status-pill, .chip { display:inline-flex; align-items:center; gap:8px; height:28px; padding:0 10px; border:1px solid var(--outline); background: var(--surface-2); font-size:12px; }
 .top-message {
@@ -202,7 +225,7 @@ button:active { transform: translateY(1px); }
 .overlay {
   position: fixed; inset:0; background: rgba(0,0,0,.72); z-index:10001; display:flex; align-items:center; justify-content:center; padding:16px;
 }
-.overlay-card { width:min(1100px, 100%); max-height: 92vh; display:flex; flex-direction:column; }
+.overlay-card { width:min(500px, 50%); max-height: 92vh; display:flex; flex-direction:column; }
 .modal-grid, .dialog-grid { display:grid; gap:16px; }
 .modal-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
 .dialog-grid { grid-template-columns: minmax(0,1.08fr) minmax(300px, .92fr); }

@@ -225,7 +225,7 @@ button:active { transform: translateY(1px); }
 .overlay {
   position: fixed; inset:0; background: rgba(0,0,0,.72); z-index:10001; display:flex; align-items:center; justify-content:center; padding:16px;
 }
-.overlay-card { width:min(1100px, 100%); max-height: 92vh; display:flex; flex-direction:column; }
+.overlay-card { width:min(500px, 50%); max-height: 92vh; display:flex; flex-direction:column; }
 .modal-grid, .dialog-grid { display:grid; gap:16px; }
 .modal-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
 .dialog-grid { grid-template-columns: minmax(0,1.08fr) minmax(300px, .92fr); }

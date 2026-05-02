@@ -1,5 +1,7 @@
 <template>
   <div class="status-bars-container" v-if="mud.statusBars && mud.statusBars.length > 0">
+    <!-- 调试：显示状态栏数量 -->
+    <div style="color: red; font-size: 12px;">DEBUG: {{ mud.statusBars.length }} bars</div>
     <div class="status-bar-row" v-for="(row, rowIndex) in groupedBars" :key="rowIndex">
       <div 
         class="attrbar" 
@@ -28,6 +30,7 @@ const mud = inject('mud');
 // 将状态栏按columns分组
 const groupedBars = computed(() => {
   if (!mud.statusBars || mud.statusBars.length === 0) {
+    console.log('[StatusBars] No status bars data, current value:', mud.statusBars);
     return [];
   }
   
