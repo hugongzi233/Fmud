@@ -420,38 +420,35 @@ const mudAppOptions = {
               return;
             }
             const code = rest.slice(1, 4);
-                        // 计算consumeLength：查找下一个真正的消息头（\u001b + 3位数字）
-            // 而不是ANSI颜色代码（\u001b[...m）
-            let consumeLength = rest.length; // 默认消费到末尾
+                        // 对于012状态栏和006自定义命令，直接消费到末尾
+            let consumeLength = rest.length;
             
-            // 从位置4开始查找下一个ESC
-            let searchPos = 4;
-            while (searchPos < rest.length) {
-              const nextEscIdx = rest.indexOf('\u001b', searchPos);
-              if (nextEscIdx === -1) break;
-              
-              // 检查这个ESC后面是否是3位数字（新的消息头）
-              if (nextEscIdx + 4 <= rest.length) {
-                const nextCode = rest.slice(nextEscIdx + 1, nextEscIdx + 4);
-                // 判断是否是3位数字代码
-                if (/^\d{3}$/.test(nextCode)) {
-                  // 这是新的消息头，在此处停止
-                  consumeLength = nextEscIdx;
-                  break;
+            if (code === '012' || code === '006') {
+              // 这些消息包含大量ANSI颜色代码，直接消费到末尾
+              consumeLength = rest.length;
+            } else {
+              // 其他消息类型正常查找ESC边界
+              let searchPos = 4;
+              while (searchPos < rest.length) {
+                const nextEscIdx = rest.indexOf('\u001b', searchPos);
+                if (nextEscIdx === -1) break;
+                
+                if (nextEscIdx + 4 <= rest.length) {
+                  const nextCode = rest.slice(nextEscIdx + 1, nextEscIdx + 4);
+                  if (/^\d{3}$/.test(nextCode)) {
+                    consumeLength = nextEscIdx;
+                    break;
+                  }
+                }
+                
+                const seqEnd = rest.indexOf('m', nextEscIdx);
+                if (seqEnd !== -1) {
+                  searchPos = seqEnd + 1;
+                } else {
+                  searchPos = nextEscIdx + 1;
                 }
               }
-              
-              // 否则这是ANSI代码或其他控制序列，跳过它
-              // 查找这个ESC序列的结束位置（通常是'm'字符）
-              const seqEnd = rest.indexOf('m', nextEscIdx);
-              if (seqEnd !== -1) {
-                searchPos = seqEnd + 1;
-              } else {
-                // 如果找不到'm'，跳过这个ESC继续查找
-                searchPos = nextEscIdx + 1;
-              }
             }
-            
             const payload = rest.slice(4, consumeLength);
             try {
               this.handleControlMessage('\u001b' + code + payload);
