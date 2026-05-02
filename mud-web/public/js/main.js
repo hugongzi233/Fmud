@@ -81,6 +81,9 @@ const mudAppOptions = {
       quickCmds: [],  // 021消息的快捷菜单（飞行、门派等）
       customCmds: [],  // 006消息的自定义命令（常用、技能等）
       showCustomCmds: false,
+      customEditMode: false,  // 自定义编辑模式开关
+      customButtons: {},  // 自定义按钮数据 {server_account: {b1: {label, cmd}, b2: {...}, ...}}
+      lastCustomButtons: null,  // 保存上一次的自定义按钮数据
       locationName: '短歌行',
       topInfo: '',
       connected: false,
@@ -393,6 +396,229 @@ const mudAppOptions = {
       };
       this.openSocket(server.host, server.port, server.encoding || this.settings.encoding || 'utf8');
     },
+    
+    // 获取自定义按钮的存储键（按服务器+账号）
+    getCustomButtonsKey() {
+      if (!this.activeServer || !this.profile.id) return null;
+      return `custom_buttons_${this.activeServer.host}_${this.activeServer.port}_${this.profile.id}`;
+    },
+    
+    // 保存上一次的自定义按钮数据
+    saveLastCustomButtons() {
+      const row1 = this.customCmds.filter(cmd => {
+        const match = cmd.key.match(/^b(\d+)-/);
+        if (match) {
+          const num = parseInt(match[1]);
+          return num >= 1 && num <= 5;
+        }
+        return false;
+      });
+      const row2 = this.customCmds.filter(cmd => {
+        const match = cmd.key.match(/^b(\d+)-/);
+        if (match) {
+          const num = parseInt(match[1]);
+          return num >= 6 && num <= 11;
+        }
+        return false;
+      });
+      
+      this.lastCustomButtons = [...row1, ...row2];
+    },
+    
+    // 加载自定义按钮用于编辑模式
+    loadCustomButtonsForEdit() {
+      const buttons = this.loadCustomButtonsArray();
+      this.customCmds = buttons;
+    },
+    
+    // 加载自定义按钮数组（b1-b11）
+    loadCustomButtonsArray() {
+      const key = this.getCustomButtonsKey();
+      if (!key) {
+        // 没有有效的键，显示空按钮
+        return this.generateEmptyCustomButtons();
+      }
+      
+      const saved = loadJSON(key, null);
+      if (saved && Object.keys(saved).length > 0) {
+        // 有保存的自定义按钮，转换为数组格式
+        const buttons = [];
+        for (let i = 1; i <= 11; i++) {
+          const btnKey = `b${i}`;
+          if (saved[btnKey]) {
+            buttons.push({
+              key: `${btnKey}-${saved[btnKey].label}`,
+              cmd: saved[btnKey].cmd || '',
+              label: saved[btnKey].label || '长按',
+              labelHtml: renderMudText(saved[btnKey].label || '长按', createAnsiState(), { mode: this.settings.mode })
+            });
+          } else {
+            // 没有自定义的按钮，显示为空
+            buttons.push({
+              key: `${btnKey}-empty`,
+              cmd: '',
+              label: '',
+              labelHtml: ''
+            });
+          }
+        }
+        return buttons;
+      } else {
+        // 没有保存的数据，显示空按钮
+        return this.generateEmptyCustomButtons();
+      }
+    },
+    
+    // 生成空的自定义按钮数组
+    generateEmptyCustomButtons() {
+      const buttons = [];
+      for (let i = 1; i <= 11; i++) {
+        buttons.push({
+          key: `b${i}-empty`,
+          cmd: '',
+          label: '',
+          labelHtml: ''
+        });
+      }
+      return buttons;
+    },
+    
+    // 合并自定义按钮到服务器发送的按钮列表
+    mergeCustomButtons(serverItems) {
+      // 检查新数据中是否包含 b12-b17
+      const newRow3 = serverItems.filter(item => {
+        const match = item.key.match(/^b(\d+)-/);
+        if (match) {
+          const num = parseInt(match[1]);
+          return num >= 12 && num <= 17;
+        }
+        return false;
+      });
+      
+      if (newRow3.length === 0) {
+        // 新数据中没有 b12-b17，保留之前的 b12-b17
+        const oldRow3 = this.customCmds.filter(cmd => {
+          const match = cmd.key.match(/^b(\d+)-/);
+          if (match) {
+            const num = parseInt(match[1]);
+            return num >= 12 && num <= 17;
+          }
+          return false;
+        });
+        
+        // 合并：服务器的 b1-b11 + 保留的 b12-b17
+        const merged = this.mergeCustomButtonsToArray(serverItems);
+        this.customCmds = [...merged, ...oldRow3];
+      } else {
+        // 新数据中有 b12-b17，正常合并
+        const merged = this.mergeCustomButtonsToArray(serverItems);
+        this.customCmds = merged;
+      }
+    },
+    
+    // 合并自定义按钮到服务器发送的按钮列表（返回数组）
+    mergeCustomButtonsToArray(serverItems) {
+      const key = this.getCustomButtonsKey();
+      if (!key) {
+        return serverItems;
+      }
+      
+      const saved = loadJSON(key, null);
+      if (!saved || Object.keys(saved).length === 0) {
+        // 没有自定义按钮，直接使用服务器的
+        return serverItems;
+      }
+      
+      // 合并：用自定义按钮替换对应的 b1-b11
+      const merged = serverItems.map(item => {
+        const match = item.key.match(/^b(\d+)-/);
+        if (match) {
+          const num = parseInt(match[1]);
+          if (num >= 1 && num <= 11 && saved[`b${num}`]) {
+            // 使用自定义按钮
+            const custom = saved[`b${num}`];
+            return {
+              key: item.key,
+              cmd: custom.cmd || item.cmd,
+              label: custom.label || item.label,
+              labelHtml: renderMudText(custom.label || item.label, createAnsiState(), { mode: this.settings.mode })
+            };
+          }
+        }
+        return item;
+      });
+      
+      return merged;
+    },
+    
+    // 切换自定义编辑模式
+    toggleCustomEditMode() {
+      if (this.customEditMode) {
+        // 退出自定义模式
+        this.customEditMode = false;
+        
+        // 保留当前的 b12-b17
+        const row3 = this.customCmds.filter(cmd => {
+          const match = cmd.key.match(/^b(\d+)-/);
+          if (match) {
+            const num = parseInt(match[1]);
+            return num >= 12 && num <= 17;
+          }
+          return false;
+        });
+        
+        if (this.lastCustomButtons && this.lastCustomButtons.length > 0) {
+          // 有上一次的数据，恢复 b1-b11
+          this.customCmds = [...this.lastCustomButtons, ...row3];
+        } else {
+          // 没有上一次的数据，b1-b11 显示为空按钮
+          const emptyB1toB11 = this.generateEmptyCustomButtons();
+          this.customCmds = [...emptyB1toB11, ...row3];
+        }
+        
+        this.lastCustomButtons = null;
+      } else {
+        // 进入自定义模式，保存当前 b1-b11 作为上一次数据
+        this.saveLastCustomButtons();
+        this.customEditMode = true;
+        
+        // 加载自定义按钮（b1-b11）
+        const customB1toB11 = this.loadCustomButtonsArray();
+        
+        // 保留当前的 b12-b17
+        const row3 = this.customCmds.filter(cmd => {
+          const match = cmd.key.match(/^b(\d+)-/);
+          if (match) {
+            const num = parseInt(match[1]);
+            return num >= 12 && num <= 17;
+          }
+          return false;
+        });
+        
+        // ✅ 合并：自定义的 b1-b11 + 保留的 b12-b17
+        this.customCmds = [...customB1toB11, ...row3];
+      }
+    },
+    
+    // 保存自定义按钮
+    saveCustomButton(buttonIndex, label, cmd) {
+      const key = this.getCustomButtonsKey();
+      if (!key) return;
+      
+      const saved = loadJSON(key, {});
+      saved[`b${buttonIndex}`] = { label, cmd };
+      saveJSON(key, saved);
+      
+      // 更新当前显示的按钮
+      if (this.customCmds[buttonIndex - 1]) {
+        this.customCmds[buttonIndex - 1].label = label;
+        this.customCmds[buttonIndex - 1].cmd = cmd;
+        this.customCmds[buttonIndex - 1].labelHtml = renderMudText(label, createAnsiState(), { mode: this.settings.mode });
+      }
+      
+      this.pushToast('快捷键已保存');
+    },
+    
     openSocket(host, port, encoding) {
       if (this.ws) {
         try { this.ws.close(); } catch {}
@@ -702,14 +928,87 @@ const mudAppOptions = {
           }
           return;
         }
-        case '006':
-          this.customCmds = parseActionItems(payload, 4).items.map((item, idx) => ({
+        case '006': {
+          const parsed = parseActionItems(payload, 4);
+          const newItems = parsed.items.map((item, idx) => ({
             key: item.key || `cmd-${idx}`,
             cmd: item.cmd || item.key || '',
             label: item.label || item.html || '',
             labelHtml: item.labelHtml || item.html || ''
           }));
+          
+          // ✅ 空响应保护：如果解析结果为空，不更新数据
+          if (!newItems || newItems.length === 0) {
+            return;
+          }
+          
+          // 检查是否只包含 b12-b17（第三行按钮）
+          const hasOnlyRow3 = newItems.every(item => {
+            const match = item.key.match(/^b(\d+)-/);
+            if (match) {
+              const num = parseInt(match[1]);
+              return num >= 12 && num <= 17;
+            }
+            return false;
+          });
+          
+          if (hasOnlyRow3) {
+            // 服务器只发送了 b12-b17
+            // 保存当前的 b1-b11 作为上一次数据（如果还没保存）
+            if (!this.customEditMode && this.lastCustomButtons === null) {
+              this.saveLastCustomButtons();
+            }
+            
+            // 进入自定义模式
+            this.customEditMode = true;
+            
+            // 加载自定义按钮（b1-b11）
+            const customB1toB11 = this.loadCustomButtonsArray();
+            
+            // 合并：自定义的 b1-b11 + 服务器的 b12-b17
+            this.customCmds = [...customB1toB11, ...newItems];
+          } else {
+            // 服务器发送了完整的按钮列表（包含 b1-b11）
+            if (this.customEditMode) {
+              // ✅ 退出自定义模式
+              this.customEditMode = false;
+              
+              // 检查新数据中是否包含 b12-b17
+              const newRow3 = newItems.filter(item => {
+                const match = item.key.match(/^b(\d+)-/);
+                if (match) {
+                  const num = parseInt(match[1]);
+                  return num >= 12 && num <= 17;
+                }
+                return false;
+              });
+              
+              if (newRow3.length === 0) {
+                // 新数据中没有 b12-b17，保留之前的 b12-b17
+                const oldRow3 = this.customCmds.filter(cmd => {
+                  const match = cmd.key.match(/^b(\d+)-/);
+                  if (match) {
+                    const num = parseInt(match[1]);
+                    return num >= 12 && num <= 17;
+                  }
+                  return false;
+                });
+                
+                // 合并：服务器的 b1-b11 + 保留的 b12-b17
+                const merged = this.mergeCustomButtonsToArray(newItems);
+                this.customCmds = [...merged, ...oldRow3];
+              } else {
+                // 新数据中有 b12-b17，正常合并
+                this.lastCustomButtons = null;
+                this.mergeCustomButtons(newItems);
+              }
+            } else {
+              // 正常模式：更新所有按钮，并合并自定义设置
+              this.mergeCustomButtons(newItems);
+            }
+          }
           return;
+        }
         case '905': {
           // 从targets（物品列表）中移除指定的对象
           const objId = payload.trim();
@@ -776,7 +1075,7 @@ const mudAppOptions = {
           this.fightVisible = false;
           return;
         case '020': {
-          const parsed = parseActionItems(payload, 4);
+          const parsed = parseActionItems(payload);
           this.popup = { visible: true, title: '菜单', items: parsed.items, columns: 4 };
           return;
         }

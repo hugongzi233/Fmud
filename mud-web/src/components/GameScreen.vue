@@ -1,4 +1,4 @@
-<template>
+  <template>
   <div class="mud-pc-screen" v-if="mud && mud.screen !== 'home'">
     <!-- 左侧边栏 -->
     <div class="pc-left-sidebar">
@@ -86,14 +86,56 @@
         
         <!-- 自定义命令按钮（006消息） -->
         <div class="pc-custom-cmds" v-if="mud.customCmds && mud.customCmds.length > 0">
-          <button 
-            class="pc-custom-cmd-btn" 
-            v-for="cmd in mud.customCmds" 
-            :key="cmd.key" 
-            @click="mud.sendCommand(cmd.cmd)"
-          >
-            <span v-html="cmd.label || cmd.html || cmd.cmd"></span>
-          </button>
+          <!-- 第一行：b1-b5 + 第6个"自定"/"关闭"按钮 -->
+          <div class="pc-custom-cmd-row">
+            <button 
+              class="pc-custom-cmd-btn" 
+              v-for="(cmd, idx) in customCmdsRow1" 
+              :key="cmd.key" 
+              @click="handleCustomCmdClick(cmd, idx + 1)"
+              @contextmenu.prevent="handleCustomCmdLongPress($event, cmd, idx + 1)"
+            >
+              <span v-html="cmd.labelHtml || cmd.label"></span>
+            </button>
+            <!-- 填充空位以保持布局 -->
+            <div class="pc-custom-cmd-placeholder" v-for="n in (5 - customCmdsRow1.length)" :key="'empty1-' + n"></div>
+            <!-- 第一行第6个按钮：自定/关闭 -->
+            <button 
+              class="pc-custom-cmd-btn pc-custom-toggle-btn"
+              @click="mud.toggleCustomEditMode()"
+            >
+              {{ mud.customEditMode ? '关闭' : '自定' }}
+            </button>
+          </div>
+          
+          <!-- 第二行：b6-b11 (最多6个按钮) -->
+          <div class="pc-custom-cmd-row">
+            <button 
+              class="pc-custom-cmd-btn" 
+              v-for="(cmd, idx) in customCmdsRow2" 
+              :key="cmd.key" 
+              @click="handleCustomCmdClick(cmd, idx + 6)"
+              @contextmenu.prevent="handleCustomCmdLongPress($event, cmd, idx + 6)"
+            >
+              <span v-html="cmd.labelHtml || cmd.label"></span>
+            </button>
+            <!-- 填充空位以保持6列布局 -->
+            <div class="pc-custom-cmd-placeholder" v-for="n in (6 - customCmdsRow2.length)" :key="'empty2-' + n"></div>
+          </div>
+          
+          <!-- 第三行：b12-b17 (固定6个按钮) -->
+          <div class="pc-custom-cmd-row">
+            <button 
+              class="pc-custom-cmd-btn" 
+              v-for="cmd in customCmdsRow3" 
+              :key="cmd.key" 
+              @click="mud.sendCommand(cmd.cmd)"
+            >
+              <span v-html="cmd.labelHtml || cmd.label"></span>
+            </button>
+            <!-- 填充空位以保持6列布局 -->
+            <div class="pc-custom-cmd-placeholder" v-for="n in (6 - customCmdsRow3.length)" :key="'empty3-' + n"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -133,7 +175,7 @@
       </div>
     </div>
 
-    <!-- 对象交互窗口 -->
+    <!-- 对象交互对话框 -->
     <div class="pc-object-dialog" v-if="mud.actionBlocks && mud.actionBlocks.length > 0">
       <div class="pc-dialog-header">
         <h3>{{ mud.actionBlocks[0].title }}</h3>
@@ -231,6 +273,33 @@ watch(() => mud.allChatHtml, () => {
   }
 });
 
+// 监听 actionBlocks 变化，初始化输入框默认值
+watch(() => mud.actionBlocks, (newBlocks) => {
+  if (!newBlocks || newBlocks.length === 0) {
+    // 关闭弹窗时清空输入框
+    textInputValue.value = '';
+    return;
+  }
+  
+  const block = newBlocks[0];
+  if (block.kind === '001' && block.items && block.items.length > 0) {
+    const item = block.items[0];
+    
+    // 检查是否是自定义按钮编辑
+    if (item.cmdPrefix === 'CUSTOM_EDIT' && item.customData) {
+      // 设置初始值为 "名称,指令" 格式
+      const { currentLabel, currentCmd } = item.customData;
+      textInputValue.value = `${currentLabel || ''},${currentCmd || ''}`;
+    } else {
+      // 普通输入框，清空或根据 item 设置默认值
+      textInputValue.value = '';
+    }
+  } else {
+    // 非 001 类型，清空输入框
+    textInputValue.value = '';
+  }
+}, { deep: true });
+
 // 计算自定义出口（非标准方向的出口）
 const customExits = computed(() => {
   if (!mud.exits) return [];
@@ -239,6 +308,77 @@ const customExits = computed(() => {
   
   return mud.exits.filter(exit => {
     return !standardDirections.includes(exit.key) && exit.visible;
+  });
+});
+
+// 计算自定义命令按钮分组（按安卓客户端布局）
+// 根据按钮的 key（bxx）来决定放在哪一行
+const customCmdsRow1 = computed(() => {
+  if (!mud.customCmds || mud.customCmds.length === 0) return [];
+  
+  // 如果在编辑模式，返回空的"长按"按钮
+  if (mud.customEditMode) {
+    const buttons = [];
+    for (let i = 1; i <= 5; i++) {
+      buttons.push({
+        key: `b${i}-longpress`,
+        cmd: '',
+        label: '长按',
+        labelHtml: ''
+      });
+    }
+    return buttons;
+  }
+  
+  // 正常模式：过滤 b1-b5
+  return mud.customCmds.filter(cmd => {
+    const match = cmd.key.match(/^b(\d+)-/);
+    if (match) {
+      const num = parseInt(match[1]);
+      return num >= 1 && num <= 5;
+    }
+    return false;
+  });
+});
+
+const customCmdsRow2 = computed(() => {
+  if (!mud.customCmds || mud.customCmds.length === 0) return [];
+  
+  // 如果在编辑模式，返回空的"长按"按钮
+  if (mud.customEditMode) {
+    const buttons = [];
+    for (let i = 6; i <= 11; i++) {
+      buttons.push({
+        key: `b${i}-longpress`,
+        cmd: '',
+        label: '长按',
+        labelHtml: ''
+      });
+    }
+    return buttons;
+  }
+  
+  // 正常模式：过滤 b6-b11
+  return mud.customCmds.filter(cmd => {
+    const match = cmd.key.match(/^b(\d+)-/);
+    if (match) {
+      const num = parseInt(match[1]);
+      return num >= 6 && num <= 11;
+    }
+    return false;
+  });
+});
+
+const customCmdsRow3 = computed(() => {
+  if (!mud.customCmds || mud.customCmds.length === 0) return [];
+  // 第三行：b12-b17（key 以 b12-b17 开头的按钮，固定在这一行）
+  return mud.customCmds.filter(cmd => {
+    const match = cmd.key.match(/^b(\d+)-/);
+    if (match) {
+      const num = parseInt(match[1]);
+      return num >= 12 && num <= 17;
+    }
+    return false;
   });
 });
 
@@ -260,11 +400,70 @@ const handleActionItemClick = (item) => {
   }
 };
 
+// 处理自定义命令按钮点击
+const handleCustomCmdClick = (cmd, buttonIndex) => {
+  // 如果在编辑模式且按钮为空，不响应点击
+  if (mud.customEditMode && (!cmd.cmd || cmd.cmd.trim() === '')) {
+    return;
+  }
+  
+  // 正常发送命令
+  if (cmd.cmd) {
+    mud.sendCommand(cmd.cmd);
+  }
+};
+
+// 处理自定义命令按钮长按（右键点击）
+const handleCustomCmdLongPress = (event, cmd, buttonIndex) => {
+  if (!mud.customEditMode) return; // 只在编辑模式响应长按
+  
+  // 使用现有的 pc-object-dialog 显示编辑表单
+  mud.actionBlocks = [{
+    title: '编辑快捷键',
+    kind: '001',
+    cols: 1,
+    items: [{
+      key: `edit-b${buttonIndex}`,
+      labelHtml: '<div style="margin-bottom:10px;">请输入快捷键名称和指令：</div>',
+      cmdPrefix: 'CUSTOM_EDIT',
+      customData: { buttonIndex, currentLabel: cmd.label || '', currentCmd: cmd.cmd || '' }
+    }]
+  }];
+  
+  // textInputValue 会通过 watch 自动初始化
+};
+
 // 处理输入框提交（001消息类型）
 const handleTextInputSubmit = () => {
   if (!mud.actionBlocks || mud.actionBlocks.length === 0) return;
   
   const item = mud.actionBlocks[0].items[0];
+  
+  // 检查是否是自定义按钮编辑
+  if (item.cmdPrefix === 'CUSTOM_EDIT' && item.customData) {
+    const { buttonIndex, currentLabel, currentCmd } = item.customData;
+    const input = textInputValue.value.trim();
+    
+    // 解析输入：格式为 "名称,指令"
+    const parts = input.split(',');
+    if (parts.length >= 2) {
+      const label = parts[0].trim();
+      const cmd = parts.slice(1).join(',').trim(); // 支持指令中包含逗号
+      
+      if (label && cmd) {
+        mud.saveCustomButton(buttonIndex, label, cmd);
+      } else {
+        mud.pushToast('请填写快捷键名称和指令');
+      }
+    } else {
+      mud.pushToast('格式错误，请使用：名称,指令');
+    }
+    
+    closeActionBlocks();
+    return;
+  }
+  
+  // 普通的 001 消息处理
   if (!item || !item.cmdPrefix) return;
   
   // 发送命令：命令前缀 + 用户输入的内容
@@ -572,12 +771,25 @@ onUnmounted(() => {
 
 /* 自定义命令按钮区域（006消息） */
 .pc-custom-cmds {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  display: flex;
+  flex-direction: column;
   gap: 4px;
   margin-top: 6px;
   padding-top: 6px;
   border-top: 1px solid #555;
+}
+
+/* 自定义命令按钮行 - 固定6列 */
+.pc-custom-cmd-row {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+}
+
+/* 占位符（用于第一行第6个空位） */
+.pc-custom-cmd-placeholder {
+  visibility: hidden;
+  min-height: 36px;
 }
 
 .pc-custom-cmd-btn {
@@ -590,12 +802,26 @@ onUnmounted(() => {
   transition: all 0.2s;
   border-radius: 3px;
   text-align: center;
+  min-height: 36px;
 }
 
 .pc-custom-cmd-btn:hover {
   background: linear-gradient(135deg, #5a4f45 0%, #4a4540 100%);
   border-color: #e6bf6b;
   transform: translateY(-1px);
+}
+
+/* 自定/关闭切换按钮特殊样式 */
+.pc-custom-toggle-btn {
+  background: linear-gradient(135deg, #4a3f35 0%, #3a2f25 100%) !important;
+  border-color: #e6bf6b !important;
+  color: #e6bf6b !important;
+  font-weight: 600;
+}
+
+.pc-custom-toggle-btn:hover {
+  background: linear-gradient(135deg, #5a4f45 0%, #4a3f35 100%) !important;
+  border-color: #f0cf7b !important;
 }
 
 /* 聊天区域 */

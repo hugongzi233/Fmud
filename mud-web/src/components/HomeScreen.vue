@@ -9,7 +9,7 @@
             <div class="field"><div class="label">密码</div><input class="input" type="password" v-model="mud.profile.pass" placeholder="请输入密码" /></div>
             <div class="field"><div class="label">编码</div><select class="select" v-model="mud.settings.encoding"><option value="utf8">utf8</option><option value="gbk">gbk</option><option value="gb2312">gb2312</option></select></div>
             <div class="field"><div class="label">记住账号</div><label class="switch"><input type="checkbox" v-model="mud.settings.rememberAccount" @change="mud.persist" /><span class="switch-track"><span class="switch-thumb"></span></span></label></div>
-            <div class="field full"><div class="row end"><button class="soft-btn" @click="mud.showRegister = true">注册</button><button class="primary-btn" @click="mud.loginAndLoadServers">登录并获取分区</button></div></div>
+            <div class="field full"><div class="row end"><button class="soft-btn" @click="mud.showRegister = true">注册</button><button class="primary-btn" @click="mud.loginAndLoadServers">登录</button></div></div>
           </div>
         </div>
       </section>

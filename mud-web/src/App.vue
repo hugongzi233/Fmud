@@ -5,7 +5,7 @@
       <div class="toolbar-actions">
         <button class="soft-btn" @click="openUserCenter">用户中心</button>
         <button class="soft-btn" @click="openSettings">设置</button>
-        <button class="primary-btn" @click="loginAndLoadServers">登录并获取分区</button>
+        <button class="primary-btn" @click="loginAndLoadServers">登录</button>
       </div>
     </div>
 

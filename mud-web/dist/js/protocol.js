@@ -275,6 +275,17 @@ export function parseActionItems(raw, defaultColumns = 2) {
       }
     }
     
+    // 提取并保存按钮标识前缀（如 b1, b12, b17 等）
+    let buttonId = '';
+    const buttonIdMatch = labelRaw.match(/^b(\d+):/);
+    if (buttonIdMatch) {
+      buttonId = `b${buttonIdMatch[1]}`;
+    }
+    
+    // 移除按钮标识前缀（如 b1:, b12:, b17: 等）
+    // 匹配模式：以 b 开头，后跟数字，然后是冒号
+    labelRaw = labelRaw.replace(/^b\d+:/, '');
+    
     // 将 $br# 转换为换行符，让 renderStyledText 内部的 white-space:pre-wrap 处理
     const labelWithNewlines = labelRaw.replace(/\$br#/g, '\n');
     const cmdWithNewlines = (cmdPrefix || labelRaw).replace(/\$br#/g, '\n');
@@ -283,7 +294,7 @@ export function parseActionItems(raw, defaultColumns = 2) {
     const captionHtml = renderMudText(cmdWithNewlines, createAnsiState(), { mode: 'dark' });
     
     return {
-      key: `${index}-${stripAnsiCodes(labelRaw)}`,
+      key: buttonId ? `${buttonId}-${stripAnsiCodes(labelRaw)}` : `${index}-${stripAnsiCodes(labelRaw)}`,
       label: stripAnsiCodes(labelRaw),
       labelHtml,
       cmd: String(cmdPrefix || '').trim(),

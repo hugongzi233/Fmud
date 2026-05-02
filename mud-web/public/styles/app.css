@@ -429,3 +429,35 @@ button:active { transform: translateY(1px); }
   .server-card { grid-template-columns: 1fr; }
   .server-actions { min-width:0; flex-direction:row; flex-wrap:wrap; }
 }
+
+/* === 滚动条样式规范 === */
+/* WebKit 内核浏览器 (Chrome, Edge, Safari) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1a1a1a;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #555555;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #8b6f47;
+}
+
+::-webkit-scrollbar-corner {
+  background: #1a1a1a;
+}
+
+/* Firefox 浏览器 */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #555555 #1a1a1a;
+}
