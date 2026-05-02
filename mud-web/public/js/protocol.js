@@ -216,14 +216,22 @@ export function splitPairs(payload) {
   return String(payload || '').split('$zj#').filter(Boolean);
 }
 
-export function parseActionItems(raw, columns = 2) {
-  const items = splitPairs(raw).map((entry, index) => {
-    // strip leading metadata like "$1,4,10,32#..."
-    let working = String(entry || '');
-    if (working.startsWith('$')) {
-      const hash = working.indexOf('#');
-      if (hash >= 0) working = working.slice(hash + 1).trim();
+export function parseActionItems(raw, defaultColumns = 2) {
+  let payload = String(raw || '');
+  let columns = defaultColumns;
+  
+  // 解析元数据 $columns,rows,sizeX,sizeY#
+  if (payload.startsWith('$')) {
+    const end = payload.indexOf('#');
+    if (end > 0) {
+      const meta = payload.slice(1, end).split(',');
+      columns = Math.max(1, Number.parseInt(meta[0] || String(defaultColumns), 10) || defaultColumns);
+      payload = payload.slice(end + 1);
     }
+  }
+  
+  const items = splitPairs(payload).map((entry, index) => {
+    let working = String(entry || '');
     const parts = working.split(':').map((p) => p.trim());
     const labelRaw = parts[0] || `按钮 ${index + 1}`;
     const cmd = parts[1] || parts[0] || '';
@@ -345,6 +353,55 @@ export function parseStatusBars(raw) {
   return bars;
 }
 
+// 专门用于解析021消息（快捷菜单）
+export function parseQuickCmds(raw) {
+  let payload = String(raw || '');
+  let columns = 4; // 默认4列
+  
+  // 解析元数据 $columns,rows,sizeX,sizeY#
+  if (payload.startsWith('$')) {
+    const end = payload.indexOf('#');
+    if (end > 0) {
+      const meta = payload.slice(1, end).split(',');
+      columns = Math.max(1, Number.parseInt(meta[0] || '4', 10) || 4);
+      payload = payload.slice(end + 1);
+    }
+  }
+  
+  const items = splitPairs(payload).map((entry, index) => {
+    let working = String(entry || '').trim();
+    
+    // 找到第一个冒号
+    const colonPos = working.indexOf(':');
+    if (colonPos === -1) {
+      // 没有冒号，整个作为label
+      const labelRaw = working;
+      const labelHtml = renderMudText(labelRaw, createAnsiState(), { mode: 'dark' });
+      return {
+        key: `${index}-${stripAnsiCodes(labelRaw)}`,
+        label: stripAnsiCodes(labelRaw),
+        labelHtml,
+        cmd: '',
+        html: labelHtml
+      };
+    }
+    
+    const labelRaw = working.slice(0, colonPos).trim();
+    const cmd = working.slice(colonPos + 1).trim();
+    
+    const labelHtml = renderMudText(labelRaw, createAnsiState(), { mode: 'dark' });
+    
+    return {
+      key: `${index}-${stripAnsiCodes(labelRaw)}`,
+      label: stripAnsiCodes(labelRaw),
+      labelHtml,
+      cmd: cmd,
+      html: labelHtml
+    };
+  });
+  return { columns, items };
+}
+
 export function parseDialog(raw) {
   const dialog = {
     visible: true,
@@ -398,5 +455,3 @@ export function parseDialog(raw) {
   });
   return dialog;
 }
-
-export { ESC, escapeHtml };

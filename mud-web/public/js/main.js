@@ -8,6 +8,7 @@ import {
   parseTargetItems,
   parseStatusBars,
   parseDialog,
+  parseQuickCmds,
   escapeHtml
 } from './protocol.js';
 
@@ -26,7 +27,8 @@ function extractGuiTitle(payload) {
   const text = String(payload || '');
   const quoted = text.match(/「([^」]+)」/);
   if (quoted && quoted[1]) return quoted[1].trim();
-  const firstLine = text.replace(/\u001b\[[0-9;?]*[A-Za-z]/g, '').split('$br#')[0].trim();
+  // 先尝试移除带ESC的ANSI代码，再尝试移除不带ESC的ANSI代码
+  let firstLine = text.replace(/\u001b\[[0-9;?]*[A-Za-z]/g, '').replace(/\[[0-9;?]*m/g, '').split('$br#')[0].trim();
   if (!firstLine) return 'GUI';
   const short = firstLine.replace(/\(.+\)$/, '').trim();
   return short || firstLine;
@@ -57,6 +59,8 @@ const mudAppOptions = {
       showWeb: false,
       showGui: false,
       guiTitle: '',
+      guiTitleHtml: '',
+      guiColumns: 3,
       guiHtml: '',
       guiActions: [],
       guiActions1: [],
@@ -416,25 +420,35 @@ const mudAppOptions = {
               return;
             }
             const code = rest.slice(1, 4);
+                        // 计算consumeLength：查找下一个真正的消息头（\u001b + 3位数字）
+            // 而不是ANSI颜色代码（\u001b[...m）
+            let consumeLength = rest.length; // 默认消费到末尾
             
-            // 对于某些消息类型（如012状态栏、006自定义命令），消费到文本末尾
-            // 因为这些消息的payload中可能包含多个ESC序列（如ANSI颜色代码）
-            let consumeLength;
-            if (code === '012' || code === '006') {
-              // 这些消息消费到文本末尾，不查找下一个ESC
-              consumeLength = rest.length;
-            } else {
-              // 其他消息类型正常查找ESC和零前缀
-              const nextEscIdx = rest.indexOf('\u001b', 4);
-              const nextZeroMatch = rest.slice(4).match(/0{3,}\d{1,3}/);
-              const nextZeroIdx = nextZeroMatch ? (4 + rest.slice(4).indexOf(nextZeroMatch[0])) : -1;
+            // 从位置4开始查找下一个ESC
+            let searchPos = 4;
+            while (searchPos < rest.length) {
+              const nextEscIdx = rest.indexOf('\u001b', searchPos);
+              if (nextEscIdx === -1) break;
               
-              if (nextEscIdx !== -1 && (nextZeroIdx === -1 || nextEscIdx <= nextZeroIdx)) {
-                consumeLength = nextEscIdx;
-              } else if (nextZeroIdx !== -1) {
-                consumeLength = nextZeroIdx;
+              // 检查这个ESC后面是否是3位数字（新的消息头）
+              if (nextEscIdx + 4 <= rest.length) {
+                const nextCode = rest.slice(nextEscIdx + 1, nextEscIdx + 4);
+                // 判断是否是3位数字代码
+                if (/^\d{3}$/.test(nextCode)) {
+                  // 这是新的消息头，在此处停止
+                  consumeLength = nextEscIdx;
+                  break;
+                }
+              }
+              
+              // 否则这是ANSI代码或其他控制序列，跳过它
+              // 查找这个ESC序列的结束位置（通常是'm'字符）
+              const seqEnd = rest.indexOf('m', nextEscIdx);
+              if (seqEnd !== -1) {
+                searchPos = seqEnd + 1;
               } else {
-                consumeLength = rest.length;
+                // 如果找不到'm'，跳过这个ESC继续查找
+                searchPos = nextEscIdx + 1;
               }
             }
             
@@ -442,7 +456,7 @@ const mudAppOptions = {
             try {
               this.handleControlMessage('\u001b' + code + payload);
             } catch (e) {
-              this.appendMain('\u001b' + code + payload);
+              // 不将原始payload回退到主界面，避免显示未解析的协议数据
             }
             // 保留剩余文本继续处理
             rest = rest.slice(consumeLength);
@@ -537,18 +551,28 @@ const mudAppOptions = {
             label: item.label || item.html || ''
           }));
           return;
-        case '007':
+        case '905': {
+          // 从targets（物品列表）中移除指定的对象
+          const objId = payload.trim();
+          if (this.targets && this.targets.length > 0) {
+            this.targets = this.targets.filter(target => target.cmd !== objId);
+          }
+          return;
+        }
+        case '007': {
           this.showGui = true;
           this.guiTitle = extractGuiTitle(payload);
-          const processedPayload = payload.replace(/\$br#/g, '\n');
-          this.guiHtml = renderMudText(processedPayload, this.gameState.ansi, { mode: this.settings.mode });
-          this.guiActions1 = [];
-          this.guiActions2 = [];
-          this.guiTab = 'main';
+          this.guiTitleHtml = renderMudText(this.guiTitle, createAnsiState(), { mode: 'dark' });
+          this.guiColumns = 3; // 默认3列
+          this.guiHtml = renderMudText(payload, createAnsiState(), { mode: 'dark' }); // 渲染ANSI代码
+          // 不清空guiActions1和guiActions2，等待008/009消息设置
+          this.guiTab = 'content';
           return;
+        }
         case '008': {
           const parsed = parseActionItems(payload);
           this.showGui = true;
+          this.guiColumns = parsed.columns || 3;
           this.guiActions1 = parsed.items;
           this.guiTab = 'actions';
           return;
@@ -556,6 +580,7 @@ const mudAppOptions = {
         case '009': {
           const parsed = parseActionItems(payload);
           this.showGui = true;
+          this.guiColumns = parsed.columns || 3;
           this.guiActions2 = parsed.items;
           this.guiTab = 'actions';
           return;
@@ -592,7 +617,7 @@ const mudAppOptions = {
           return;
         }
         case '021': {
-          const parsed = parseActionItems(payload, 4);
+          const parsed = parseQuickCmds(payload);
           this.quickCmds = parsed.items;
           return;
         }
@@ -696,7 +721,7 @@ const mudAppOptions = {
               });
               break;
             }
-          }
+                     }
         }
       }
     },
@@ -733,7 +758,8 @@ const mudAppOptions = {
       this.storyVisible = !this.storyVisible;
     },
     updateLocationName(name) {
-      this.locationName = name;
+      // 移除ANSI代码（包括带ESC和不带ESC的）
+      this.locationName = String(name || '').replace(/\u001b\[[0-9;?]*[A-Za-z]/g, '').replace(/\[[0-9;?]*m/g, '').trim();
     },
     submitDialog() {
       if (this.dialog.okCommands.length) {
