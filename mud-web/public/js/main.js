@@ -513,7 +513,9 @@ const mudAppOptions = {
           } else if (zeroIdx !== -1) {
             markerIdx = zeroIdx; markerType = 'zero';
           }
-          if (markerIdx > 0) {
+          // 如果ESC标记不在开头，且是零前缀标记，才分割处理
+          // 对于ESC开头的消息，直接交给renderMudText处理，保持文本完整性
+          if (markerIdx > 0 && markerType === 'zero') {
             const prefix = rest.slice(0, markerIdx);
             this.appendMain(prefix);
             rest = rest.slice(markerIdx);
@@ -614,9 +616,46 @@ const mudAppOptions = {
           this.roomName = payload;
           this.updateLocationName(payload);
           return;
-        case '001':
-          this.actionBlocks = [{ key: `a-${Date.now()}`, title: '交互面板', kind: '001', cols: 2, items: parseActionItems(payload).items }];
+        case '001': {
+          // 001 消息是输入框类型，格式：提示文本$zj#命令前缀 $txt#
+          const parts = payload.split('$zj#');
+          let promptText = '';
+          let cmdPrefix = '';
+          
+          if (parts.length >= 2) {
+            promptText = parts[0].trim();
+            // 第二部分可能包含 $txt# 标记
+            const cmdPart = parts[1].replace(/\$txt#/g, '').trim();
+            cmdPrefix = cmdPart;
+          } else {
+            // 如果没有 $zj# 分隔符，尝试直接查找 $txt#
+            const txtIndex = payload.lastIndexOf('$txt#');
+            if (txtIndex !== -1) {
+              const beforeTxt = payload.slice(0, txtIndex).trim();
+              cmdPrefix = beforeTxt;
+              promptText = '请输入';
+            } else {
+              promptText = payload;
+              cmdPrefix = '';
+            }
+          }
+          
+          this.actionBlocks = [{ 
+            key: `a-${Date.now()}`, 
+            title: '交互面板', 
+            kind: '001', 
+            cols: 1, 
+            items: [{
+              key: 'text-input-0',
+              label: promptText,
+              labelHtml: renderMudText(promptText, this.gameState.ansi, { mode: this.settings.mode }),
+              cmd: '',
+              cmdPrefix: cmdPrefix,
+              isTextInput: true
+            }]
+          }];
           return;
+        }
         case '003': {
           const newExits = parseExitItems(payload).map((item) => ({ ...item, visible: true }));
           if (this.exits && this.exits.length > 0) {
@@ -780,14 +819,6 @@ const mudAppOptions = {
       const rawText = String(text || '');
       this.settings = this.settings || {};
       if (typeof this.settings.showMycmdsInMain === 'undefined') this.settings.showMycmdsInMain = false;
-      if (/(u001b|0{3,}\d{1,3})/.test(rawText)) {
-        try {
-          if (!rawText.startsWith('\u001b')) {
-            this.processIncomingText(text);
-            return;
-          }
-        } catch (e) {}
-      }
       if (rawText.includes('$zj#') && /:/.test(rawText)) {
         const isMycmds = /\bmycmds\b/.test(rawText) || rawText.includes('常用') || rawText.includes('mycmds');
         if (this.settings && this.settings.showMycmdsInMain) {
@@ -922,14 +953,20 @@ const mudAppOptions = {
       this.dialog.visible = false;
     },
     handleFeedClick(event) {
-      // Handle clickable links in feed
+      const anchor = event.target.closest('[data-mud-cmd]');
+      if (!anchor) return;
+      event.preventDefault();
+      let cmd = anchor.getAttribute('data-mud-cmd');
+      // 移除 cmds: 前缀（如果存在）
+      if (cmd && cmd.startsWith('cmds:')) {
+        cmd = cmd.slice(5);
+      }
+      if (cmd) {
+        this.sendCommand(cmd);
+      }
     },
     renderBlock(block) {
       return renderMudText(block, this.gameState.ansi, { mode: this.settings.mode });
-    },
-    itemQualityClass(bg) {
-      const map = { '1': 'q-wht', '2': 'q-grn', '3': 'q-blu', '4': 'q-zis', '5': 'q-god', '6': 'q-red' };
-      return map[String(bg || '')] || 'q-cry';
     }
   }
 };

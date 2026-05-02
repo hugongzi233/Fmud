@@ -39,7 +39,7 @@
         </div>
         <div class="pc-top-actions">
           <button class="pc-top-btn" @click="mud.toggleStory" :title="mud.storyVisible ? '收起描述' : '展开描述'">
-            {{ mud.storyVisible ? '▼' : '▶' }}
+            {{ mud.storyVisible ? '-' : '+' }}
           </button>
         </div>
       </div>
@@ -59,7 +59,7 @@
         </div>
 
         <!-- 信息内容区 -->
-        <div class="pc-feed-content" ref="leftFeed" @click="mud.handleFeedClick" v-html="mud.activeFeedHtml"></div>
+        <div class="pc-feed-content" ref="leftFeed" v-html="mud.activeFeedHtml"></div>
         
         <!-- 中间底部：命令输入框 -->
         <div class="pc-bottom-command">
@@ -76,7 +76,7 @@
           <span>💬 聊天</span>
           <button class="pc-chat-expand-btn" @click="mud.toggleChatRoom" title="打开完整聊天室">⤢</button>
         </div>
-        <div class="pc-chat-content-mini" v-html="mud.allChatHtml || '<div style=\'color:#666;text-align:center;padding:20px;\'>暂无聊天消息</div>'"></div>
+        <div class="pc-chat-content-mini" ref="chatFeedMini" v-html="mud.allChatHtml || '<div style=\'color:#666;text-align:center;padding:20px;\'>暂无聊天消息</div>'"></div>
         <ChatInput />
       </div>
       
@@ -143,9 +143,24 @@
         <button class="pc-dialog-close" @click="closeActionBlocks">×</button>
       </div>
       <div class="pc-dialog-content">
-        <div class="pc-dialog-grid" :class="'cols-' + (mud.actionBlocks[0].cols || 2)">
+        <!-- 输入框类型（001消息） -->
+        <div v-if="mud.actionBlocks[0].kind === '001'" class="pc-text-input-container">
+          <div class="pc-text-prompt" v-html="mud.actionBlocks[0].items[0]?.labelHtml"></div>
+          <div class="pc-text-input-row">
+            <input 
+              type="text" 
+              class="pc-text-input" 
+              v-model="textInputValue" 
+              @keyup.enter="handleTextInputSubmit"
+              placeholder="请输入内容..."
+            />
+            <button class="pc-text-submit-btn" @click="handleTextInputSubmit">确定</button>
+          </div>
+        </div>
+        <!-- 普通按钮类型 -->
+        <div v-else class="pc-dialog-grid" :class="'cols-' + (mud.actionBlocks[0].cols || 2)">
           <button class="pc-dialog-btn" v-for="item in mud.actionBlocks[0].items" :key="item.key" @click="handleActionItemClick(item)">
-            <span v-html="item.html"></span>
+            <span v-html="item.labelHtml"></span>
           </button>
         </div>
       </div>
@@ -154,13 +169,70 @@
 </template>
 
 <script setup>
-import { inject, computed } from 'vue';
+import { inject, computed, onMounted, onUnmounted, ref, watch, nextTick } from 'vue';
 import ChatInput from './ChatInput.vue';
 import ExitButtons from './ExitButtons.vue';
 import CommandInput from './CommandInput.vue';
 import StatusBars from './StatusBars.vue';
 
 const mud = inject('mud');
+
+// 输入框类型的文本值
+const textInputValue = ref('');
+
+// 消息容器的 ref
+const leftFeed = ref(null);
+const chatFeedMini = ref(null);
+
+// 最大行数限制
+const MAX_LINES = 5000;
+
+// 滚动到底部的函数
+const scrollToBottom = (element) => {
+  if (element) {
+    nextTick(() => {
+      element.scrollTop = element.scrollHeight;
+    });
+  }
+};
+
+// 监听主信息区消息变化，自动滚动到底部
+watch(() => mud.activeFeedHtml, () => {
+  scrollToBottom(leftFeed.value);
+  
+  // 限制最大行数
+  if (leftFeed.value) {
+    const lines = leftFeed.value.querySelectorAll('.line');
+    if (lines.length > MAX_LINES) {
+      // 移除多余的行（从顶部开始移除）
+      const excessCount = lines.length - MAX_LINES;
+      for (let i = 0; i < excessCount; i++) {
+        if (lines[i]) {
+          lines[i].remove();
+        }
+      }
+    }
+  }
+});
+
+// 监听聊天消息变化，自动滚动到底部
+watch(() => mud.allChatHtml, () => {
+  scrollToBottom(chatFeedMini.value);
+  
+  // 限制最大行数
+  if (chatFeedMini.value) {
+    const lines = chatFeedMini.value.querySelectorAll('.line');
+    if (lines.length > MAX_LINES) {
+      // 移除多余的行（从顶部开始移除）
+      const excessCount = lines.length - MAX_LINES;
+      for (let i = 0; i < excessCount; i++) {
+        if (lines[i]) {
+          lines[i].remove();
+        }
+      }
+    }
+  }
+});
 
 // 计算自定义出口（非标准方向的出口）
 const customExits = computed(() => {
@@ -175,7 +247,6 @@ const customExits = computed(() => {
 
 // 处理对象点击 - 弹出交互窗口
 const handleObjectClick = (target) => {
-  console.log('点击对象:', target);
   if (target.cmd) {
     mud.sendCommand(target.cmd);
   } else if (target.key) {
@@ -185,12 +256,27 @@ const handleObjectClick = (target) => {
 
 // 处理动作项点击
 const handleActionItemClick = (item) => {
-  console.log('点击动作项:', item);
   if (item.cmd) {
     mud.sendCommand(item.cmd);
   } else if (item.key) {
     mud.sendCommand(item.key);
   }
+};
+
+// 处理输入框提交（001消息类型）
+const handleTextInputSubmit = () => {
+  if (!mud.actionBlocks || mud.actionBlocks.length === 0) return;
+  
+  const item = mud.actionBlocks[0].items[0];
+  if (!item || !item.cmdPrefix) return;
+  
+  // 发送命令：命令前缀 + 用户输入的内容
+  const fullCmd = `${item.cmdPrefix} ${textInputValue.value.trim()}`;
+  mud.sendCommand(fullCmd);
+  
+  // 清空输入框并关闭对话框
+  textInputValue.value = '';
+  closeActionBlocks();
 };
 
 // 关闭动作块
@@ -199,6 +285,33 @@ const closeActionBlocks = () => {
     mud.actionBlocks = [];
   }
 };
+
+// 处理全局点击事件 - 支持所有区域的 mud-link 点击
+const handleGlobalClick = (event) => {
+  const anchor = event.target.closest('[data-mud-cmd]');
+  if (!anchor) return;
+  
+  event.preventDefault();
+  event.stopPropagation();
+  let cmd = anchor.getAttribute('data-mud-cmd');
+  // 移除 cmds: 前缀（如果存在）
+  if (cmd && cmd.startsWith('cmds:')) {
+    cmd = cmd.slice(5);
+  }
+  if (cmd) {
+    mud.sendCommand(cmd);
+  }
+};
+
+// 在组件挂载时注册全局点击事件监听器
+onMounted(() => {
+  document.addEventListener('click', handleGlobalClick);
+});
+
+// 在组件卸载时移除事件监听器
+onUnmounted(() => {
+  document.removeEventListener('click', handleGlobalClick);
+});
 </script>
 
 <style scoped>
@@ -738,10 +851,10 @@ const closeActionBlocks = () => {
 
 /* 对象交互窗口 */
 .pc-object-dialog {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
   width: 450px;
   max-width: 90vw;
   max-height: 70vh;
@@ -749,8 +862,8 @@ const closeActionBlocks = () => {
   border: 2px solid #666;
   border-radius: 6px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
-  z-index: 10002;
-  display: flex;
+  z-index: 10100 !important;
+  display: flex !important;
   flex-direction: column;
 }
 
@@ -789,6 +902,66 @@ const closeActionBlocks = () => {
   overflow-y: auto;
 }
 
+/* 输入框类型容器（001消息） */
+.pc-text-input-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pc-text-prompt {
+  color: #ddbb99;
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.pc-text-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.pc-text-input {
+  flex: 1;
+  min-height: 36px;
+  padding: 0 10px;
+  color: #ddbb99;
+  background: #1a1510;
+  border: 1px solid #555;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.pc-text-input:focus {
+  outline: none;
+  border-color: #e6bf6b;
+  box-shadow: 0 0 0 1px rgba(230, 191, 107, 0.3);
+}
+
+.pc-text-submit-btn {
+  min-height: 36px;
+  padding: 0 16px;
+  background: linear-gradient(180deg, #3a2718, #24170e);
+  border: 1px solid #e6bf6b;
+  border-radius: 4px;
+  color: #ffe7bf;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pc-text-submit-btn:hover {
+  background: linear-gradient(180deg, #4a3728, #34271e);
+  border-color: #ffd700;
+}
+
+.pc-text-submit-btn:active {
+  transform: scale(0.98);
+}
+
+/* 普通按钮类型 */
 .pc-dialog-grid {
   display: grid;
   gap: 6px;

@@ -53,4 +53,8 @@ export default {
 </script>
 
 <style scoped>
+/* 隐藏 command-btn 中的 caption */
+.command-btn .caption {
+  display: none;
+}
 </style>

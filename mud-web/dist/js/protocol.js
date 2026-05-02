@@ -101,7 +101,8 @@ function renderStyledText(raw, state) {
   if (state.bold) style.push('font-weight:800');
   if (state.size) style.push(`font-size:${state.size}px`);
   style.push('white-space:pre-wrap');
-  const content = escapeHtml(text).replace(/\n/g, '<br/>');
+  // 注意：不在这里转换换行符，让 CSS white-space:pre-wrap 处理实际的换行
+  const content = escapeHtml(text);
   if (state.url) {
     return `<a class="mud-link" data-mud-cmd="${escapeAttr(state.url)}" style="${style.join(';')}">${content}</a>`;
   }
@@ -233,28 +234,53 @@ export function parseActionItems(raw, defaultColumns = 2) {
   const items = splitPairs(payload).map((entry, index) => {
     let working = String(entry || '');
     
-    // 使用最后一个冒号分割label和cmd（参考Android客户端takeobacts函数）
-    const lastColon = working.lastIndexOf(':');
-    let labelRaw, cmd;
+    // 检测是否包含 $txt# 标记（输入框类型）
+    const txtMarkerIndex = working.lastIndexOf('$txt#');
+    let isTextInput = false;
+    let cmdPrefix = '';
+    let labelRaw = '';
     
-    if (lastColon !== -1) {
-      labelRaw = working.slice(0, lastColon).trim();
-      cmd = working.slice(lastColon + 1).trim();
+    if (txtMarkerIndex !== -1) {
+      // 包含 $txt# 标记，这是输入框类型
+      isTextInput = true;
+      // $txt# 之前的部分是 "label:cmd" 格式
+      const beforeTxt = working.slice(0, txtMarkerIndex).trim();
+      const lastColon = beforeTxt.lastIndexOf(':');
+      
+      if (lastColon !== -1) {
+        labelRaw = beforeTxt.slice(0, lastColon).trim();
+        cmdPrefix = beforeTxt.slice(lastColon + 1).trim();
+      } else {
+        // 没有冒号，整个作为命令前缀
+        cmdPrefix = beforeTxt;
+        labelRaw = '输入';
+      }
     } else {
-      // 没有冒号，整个作为label
-      labelRaw = working;
-      cmd = '';
+      // 普通按钮类型，使用最后一个冒号分割label和cmd
+      const lastColon = working.lastIndexOf(':');
+      
+      if (lastColon !== -1) {
+        labelRaw = working.slice(0, lastColon).trim();
+        cmdPrefix = working.slice(lastColon + 1).trim();
+      } else {
+        // 没有冒号，整个作为label
+        labelRaw = working;
+        cmdPrefix = '';
+      }
     }
     
     const labelHtml = renderMudText(labelRaw, createAnsiState(), { mode: 'dark' });
-    const captionHtml = renderMudText(cmd || labelRaw, createAnsiState(), { mode: 'dark' });
+    const captionHtml = renderMudText(cmdPrefix || labelRaw, createAnsiState(), { mode: 'dark' });
+    
     return {
       key: `${index}-${stripAnsiCodes(labelRaw)}`,
       label: stripAnsiCodes(labelRaw),
       labelHtml,
-      cmd: String(cmd || '').trim(),
-      caption: stripAnsiCodes(cmd || labelRaw),
-      captionHtml
+      cmd: String(cmdPrefix || '').trim(),
+      caption: stripAnsiCodes(cmdPrefix || labelRaw),
+      captionHtml,
+      isTextInput,  // 标记是否为输入框类型
+      cmdPrefix     // 保存命令前缀
     };
   });
   return { columns, items };
@@ -422,6 +448,7 @@ export function parseDialog(raw) {
     exp: '',
     money: '',
     numberNeeded: false,
+    hasQuantity: false,
     input: '',
     okCommands: [],
     cancelCommand: ''
@@ -429,7 +456,9 @@ export function parseDialog(raw) {
   String(raw || '').split('$dh#').forEach((piece) => {
     if (!piece) return;
     if (piece.startsWith('ok11.')) {
-      dialog.okCommands.push(...piece.slice(5).split('$sock#').filter(Boolean));
+      const cmds = piece.slice(5).split('$sock#').filter(Boolean);
+      dialog.okCommands.push(...cmds);
+      if (cmds.some(c => c.includes('$N'))) dialog.hasQuantity = true;
       return;
     }
     if (piece.startsWith('no11.')) {
@@ -466,3 +495,44 @@ export function parseDialog(raw) {
   });
   return dialog;
 }
+
+export function parseMapView(raw) {
+  return { html: raw };
+}
+
+export function parseFloatingText(raw) {
+  const text = String(raw || '');
+  // 格式: "文字内容" 或 "文字内容#颜色码"
+  const hashIdx = text.lastIndexOf('#');
+  if (hashIdx !== -1 && hashIdx < text.length - 1) {
+    const possibleColor = text.slice(hashIdx + 1);
+    // 颜色码应该是短的（如 "R" 红色 或 "#ff0000" 格式）
+    if (/^[a-fA-F0-9]{3,8}$/.test(possibleColor) || /^[a-zA-Z]+$/.test(possibleColor)) {
+      return { text: text.slice(0, hashIdx), color: possibleColor };
+    }
+  }
+  return { text, color: '' };
+}
+
+export function parseWebView(raw) {
+  return { url: String(raw || '').trim() };
+}
+
+export function parseReconnect(raw) {
+  const text = String(raw || '').trim();
+  const colonIdx = text.lastIndexOf(':');
+  if (colonIdx !== -1) {
+    return {
+      host: text.slice(0, colonIdx),
+      port: text.slice(colonIdx + 1)
+    };
+  }
+  return { host: text, port: '' };
+}
+
+export function parseCommandHistoryMode(raw) {
+  const code = String(raw || '').trim();
+  return { enabled: code === '998' };
+}
+
+export { ESC, escapeHtml };

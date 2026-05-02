@@ -36,7 +36,7 @@ function extractGuiTitle(payload) {
 
 const mudAppOptions = {
   data() {
-    const profile = loadJSON('mud.profile', { id: '', pass: '', email: '', phone: '', name: '', sex: '男性' });
+    const profile = loadJSON('mud.profile', { id: '', pass: '', email: '', phone: '', name: '', sex: '男性', myserver: '' });
     const settings = loadJSON('mud.settings', { encoding: 'utf8', mode: 'dark', cmdss: true, chatHeight: 5, rememberAccount: true });
     return {
       screen: 'home',
@@ -54,6 +54,13 @@ const mudAppOptions = {
       showSettings: false,
       showUserCenter: false,
       showServerEditor: false,
+      ucTab: 'account',
+      ucNewPass: '',
+      ucNewPhone: '',
+      ucNewEmail: '',
+      ucServerName: '',
+      ucServerHost: '',
+      ucServerPort: '',
       showMap: false,
       showMoreText: false,
       showWeb: false,
@@ -120,6 +127,7 @@ const mudAppOptions = {
         exp: '',
         money: '',
         numberNeeded: false,
+        hasQuantity: false,
         input: '',
         okCommands: [],
         cancelCommand: ''
@@ -139,7 +147,10 @@ const mudAppOptions = {
         loginQueued: false,
         versionChecked: false,
         checkSent: false,
-        ansi: createAnsiState(settings.mode || 'dark')
+        ansi: createAnsiState(settings.mode || 'dark'),
+        keepAliveTimer: null,
+        reconnectTimer: null,
+        reconnectAttempts: 0
       },
       fallbackItemImage: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4MCIgaGVpZ2h0PSI4MCIgdmlld0JveD0iMCAwIDgwIDgwIj48cmVjdCB3aWR0aD0iODAiIGhlaWdodD0iODAiIGZpbGw9IiMwYzEzMjIiLz48dGV4dCB4PSI0MCIgeT0iNDYiIGZpbGw9IiM4ZmEwYjYiIGZvbnQtc2l6ZT0iMTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk0tPjwvdGV4dD48L3N2Zz4='
     };
@@ -215,10 +226,96 @@ const mudAppOptions = {
         this.pushToast('版本接口暂时不可用');
       });
     },
-    openUserCenter() { this.showUserCenter = true; },
+    openUserCenter() { this.ucTab = 'account'; this.showUserCenter = true; this.fetchUserInfo(); },
     openSettings() { this.showSettings = true; },
     saveProfile() { this.persist(); this.pushToast('资料已保存'); },
     saveSettings() { this.persist(); this.showSettings = false; this.pushToast('设置已保存'); },
+    fetchUserInfo() {
+      if (!this.profile.id || !this.profile.pass) return;
+      return fetch(`https://mud1.foxmoe.top/mobi/userinfo.php?id=${encodeURIComponent(this.profile.id)}&pass=${encodeURIComponent(this.profile.pass)}`)
+        .then(r => r.text())
+        .then(text => {
+          if (text.indexOf('$i#') === 0) {
+            const parts = text.substring(3).split('|');
+            this.profile.id = parts[0] || this.profile.id;
+            this.profile.email = parts[3] || this.profile.email;
+            this.profile.phone = parts[2] || this.profile.phone;
+            this.profile.myserver = parts[4] || '';
+            this.persist();
+          }
+        })
+        .catch(() => {});
+    },
+    updateUcenterPass(newpwd) {
+      return fetch(`https://mud1.foxmoe.top/mobi/updateuser.php?id=${encodeURIComponent(this.profile.id)}&pass=${encodeURIComponent(this.profile.pass)}&newpwd=${encodeURIComponent(newpwd)}`)
+        .then(r => r.text())
+        .then(text => {
+          if (text.indexOf('密码修改成功') !== -1) {
+            this.profile.pass = text.replace('密码修改成功', '');
+            this.persist();
+            this.pushToast('密码修改成功');
+          } else {
+            this.pushToast(text || '修改失败');
+          }
+        })
+        .catch(() => this.pushToast('修改失败，请检查网络'));
+    },
+    updateUcenterPhone(phone) {
+      return fetch(`https://mud1.foxmoe.top/mobi/updateuser.php?id=${encodeURIComponent(this.profile.id)}&pass=${encodeURIComponent(this.profile.pass)}&phone=${encodeURIComponent(phone)}`)
+        .then(r => r.text())
+        .then(text => {
+          if (text.indexOf('手机号绑定成功') !== -1) {
+            this.profile.phone = text.replace('手机号绑定成功', '');
+            this.persist();
+            this.pushToast('手机号绑定成功');
+          } else {
+            this.pushToast(text || '修改失败');
+          }
+        })
+        .catch(() => this.pushToast('修改失败，请检查网络'));
+    },
+    updateUcenterEmail(email) {
+      return fetch(`https://mud1.foxmoe.top/mobi/updateuser.php?id=${encodeURIComponent(this.profile.id)}&pass=${encodeURIComponent(this.profile.pass)}&email=${encodeURIComponent(email)}`)
+        .then(r => r.text())
+        .then(text => {
+          if (text.indexOf('邮箱绑定成功') !== -1) {
+            this.profile.email = text.replace('邮箱绑定成功', '');
+            this.persist();
+            this.pushToast('邮箱绑定成功');
+          } else {
+            this.pushToast(text || '修改失败');
+          }
+        })
+        .catch(() => this.pushToast('修改失败，请检查网络'));
+    },
+    updateMyServer(myserver) {
+      const encoded = encodeURIComponent(myserver);
+      return fetch(`https://mud1.foxmoe.top/mobi/updateuser.php?id=${encodeURIComponent(this.profile.id)}&pass=${encodeURIComponent(this.profile.pass)}&myserver=${encoded}`)
+        .then(r => r.text())
+        .then(text => {
+          if (text.indexOf('测试服务器修改成功') !== -1) {
+            this.profile.myserver = text.replace('测试服务器修改成功', '');
+            this.persist();
+            this.pushToast('自定义服务器已保存');
+          } else {
+            this.pushToast(text || '修改失败');
+          }
+        })
+        .catch(() => this.pushToast('修改失败，请检查网络'));
+    },
+    saveUcenterServer() {
+      if (!this.ucServerHost || !this.ucServerPort) {
+        this.pushToast('请填写服务器地址和端口');
+        return;
+      }
+      const name = this.ucServerName || this.ucServerHost;
+      const portNum = parseInt(this.ucServerPort, 10) || 23;
+      const myserver = `${name}&${this.ucServerHost}&${this.ucServerPort}&${portNum + 1}`;
+      this.updateMyServer(myserver);
+      this.ucServerName = '';
+      this.ucServerHost = '';
+      this.ucServerPort = '';
+    },
     loginAndLoadServers() {
       if (!this.profile.id || !this.profile.pass) {
         this.pushToast('请先输入账号和密码');
@@ -302,14 +399,22 @@ const mudAppOptions = {
       this.wsEncoding = encoding || 'utf8';
       this.ws = new WebSocket(socketUrl);
       this.ws.addEventListener('open', () => {
+        this.connected = true;
+        this.gameState.reconnectAttempts = 0;
+        this.startKeepAlive();
         this.ws.send(JSON.stringify({ action: 'connect', host, port, encoding: this.wsEncoding }));
       });
       this.ws.addEventListener('message', (event) => this.handleSocketMessage(event.data));
       this.ws.addEventListener('close', () => {
         this.connected = false;
+        this.stopKeepAlive();
+        this.scheduleReconnect(host, port, encoding);
         this.pushSystem('连接已关闭');
       });
-      this.ws.addEventListener('error', () => this.pushToast('连接错误'));
+      this.ws.addEventListener('error', () => {
+        this.connected = false;
+        this.stopKeepAlive();
+      });
     },
     handleSocketMessage(raw) {
       let message;
@@ -408,7 +513,9 @@ const mudAppOptions = {
           } else if (zeroIdx !== -1) {
             markerIdx = zeroIdx; markerType = 'zero';
           }
-          if (markerIdx > 0) {
+          // 如果ESC标记不在开头，且是零前缀标记，才分割处理
+          // 对于ESC开头的消息，直接交给renderMudText处理，保持文本完整性
+          if (markerIdx > 0 && markerType === 'zero') {
             const prefix = rest.slice(0, markerIdx);
             this.appendMain(prefix);
             rest = rest.slice(markerIdx);
@@ -509,9 +616,46 @@ const mudAppOptions = {
           this.roomName = payload;
           this.updateLocationName(payload);
           return;
-        case '001':
-          this.actionBlocks = [{ key: `a-${Date.now()}`, title: '交互面板', kind: '001', cols: 2, items: parseActionItems(payload).items }];
+        case '001': {
+          // 001 消息是输入框类型，格式：提示文本$zj#命令前缀 $txt#
+          const parts = payload.split('$zj#');
+          let promptText = '';
+          let cmdPrefix = '';
+          
+          if (parts.length >= 2) {
+            promptText = parts[0].trim();
+            // 第二部分可能包含 $txt# 标记
+            const cmdPart = parts[1].replace(/\$txt#/g, '').trim();
+            cmdPrefix = cmdPart;
+          } else {
+            // 如果没有 $zj# 分隔符，尝试直接查找 $txt#
+            const txtIndex = payload.lastIndexOf('$txt#');
+            if (txtIndex !== -1) {
+              const beforeTxt = payload.slice(0, txtIndex).trim();
+              cmdPrefix = beforeTxt;
+              promptText = '请输入';
+            } else {
+              promptText = payload;
+              cmdPrefix = '';
+            }
+          }
+          
+          this.actionBlocks = [{ 
+            key: `a-${Date.now()}`, 
+            title: '交互面板', 
+            kind: '001', 
+            cols: 1, 
+            items: [{
+              key: 'text-input-0',
+              label: promptText,
+              labelHtml: renderMudText(promptText, this.gameState.ansi, { mode: this.settings.mode }),
+              cmd: '',
+              cmdPrefix: cmdPrefix,
+              isTextInput: true
+            }]
+          }];
           return;
+        }
         case '003': {
           const newExits = parseExitItems(payload).map((item) => ({ ...item, visible: true }));
           if (this.exits && this.exits.length > 0) {
@@ -675,14 +819,6 @@ const mudAppOptions = {
       const rawText = String(text || '');
       this.settings = this.settings || {};
       if (typeof this.settings.showMycmdsInMain === 'undefined') this.settings.showMycmdsInMain = false;
-      if (/(u001b|0{3,}\d{1,3})/.test(rawText)) {
-        try {
-          if (!rawText.startsWith('\u001b')) {
-            this.processIncomingText(text);
-            return;
-          }
-        } catch (e) {}
-      }
       if (rawText.includes('$zj#') && /:/.test(rawText)) {
         const isMycmds = /\bmycmds\b/.test(rawText) || rawText.includes('常用') || rawText.includes('mycmds');
         if (this.settings && this.settings.showMycmdsInMain) {
@@ -744,7 +880,35 @@ const mudAppOptions = {
       if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
       this.ws.send(JSON.stringify({ action: 'input', text }));
     },
+    startKeepAlive() {
+      this.stopKeepAlive();
+      this.gameState.keepAliveTimer = setInterval(() => {
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+          this.ws.send(JSON.stringify({ action: 'ping' }));
+        }
+      }, 30000);
+    },
+    stopKeepAlive() {
+      if (this.gameState.keepAliveTimer) {
+        clearInterval(this.gameState.keepAliveTimer);
+        this.gameState.keepAliveTimer = null;
+      }
+    },
+    scheduleReconnect(host, port, encoding) {
+      if (this.gameState.reconnectAttempts >= 5) return;
+      const delay = Math.min(1000 * Math.pow(2, this.gameState.reconnectAttempts), 30000);
+      this.gameState.reconnectAttempts++;
+      this.gameState.reconnectTimer = setTimeout(() => {
+        this.openSocket(host, port, encoding);
+      }, delay);
+    },
     disconnect() {
+      this.stopKeepAlive();
+      if (this.gameState.reconnectTimer) {
+        clearTimeout(this.gameState.reconnectTimer);
+        this.gameState.reconnectTimer = null;
+      }
+      this.gameState.reconnectAttempts = 0;
       if (this.ws) {
         try { this.ws.close(); } catch {}
         this.ws = null;
@@ -766,8 +930,16 @@ const mudAppOptions = {
       this.locationName = String(name || '').replace(/\u001b\[[0-9;?]*[A-Za-z]/g, '').replace(/\[[0-9;?]*m/g, '').trim();
     },
     submitDialog() {
+      if (this.dialog.numberNeeded && !this.dialog.input) {
+        this.pushToast('请输入数字');
+        return;
+      }
       if (this.dialog.okCommands.length) {
-        this.sendCommand(this.dialog.okCommands[0]);
+        let cmd = this.dialog.okCommands[0];
+        if (this.dialog.hasQuantity) {
+          cmd = cmd.replace(/\$N/g, this.dialog.input || '1');
+        }
+        this.sendCommand(cmd);
       }
       this.dialog.visible = false;
     },
@@ -781,7 +953,17 @@ const mudAppOptions = {
       this.dialog.visible = false;
     },
     handleFeedClick(event) {
-      // Handle clickable links in feed
+      const anchor = event.target.closest('[data-mud-cmd]');
+      if (!anchor) return;
+      event.preventDefault();
+      let cmd = anchor.getAttribute('data-mud-cmd');
+      // 移除 cmds: 前缀（如果存在）
+      if (cmd && cmd.startsWith('cmds:')) {
+        cmd = cmd.slice(5);
+      }
+      if (cmd) {
+        this.sendCommand(cmd);
+      }
     },
     renderBlock(block) {
       return renderMudText(block, this.gameState.ansi, { mode: this.settings.mode });
