@@ -548,7 +548,8 @@ const mudAppOptions = {
           this.customCmds = parseActionItems(payload, 4).items.map((item, idx) => ({
             key: item.key || `cmd-${idx}`,
             cmd: item.cmd || item.key || '',
-            label: item.label || item.html || ''
+            label: item.label || item.html || '',
+            labelHtml: item.labelHtml || item.html || ''
           }));
           return;
         case '905': {
@@ -564,7 +565,9 @@ const mudAppOptions = {
           this.guiTitle = extractGuiTitle(payload);
           this.guiTitleHtml = renderMudText(this.guiTitle, createAnsiState(), { mode: 'dark' });
           this.guiColumns = 3; // 默认3列
-          this.guiHtml = renderMudText(payload, createAnsiState(), { mode: 'dark' }); // 渲染ANSI代码
+          // 先替换$br#为<br>标签，再渲染ANSI代码
+          const processedPayload = payload.replace(/\$br#/g, '<br>');
+          this.guiHtml = renderMudText(processedPayload, createAnsiState(), { mode: 'dark' });
           // 不清空guiActions1和guiActions2，等待008/009消息设置
           this.guiTab = 'content';
           return;
