@@ -2,7 +2,7 @@
   <div class="object-list-container">
     <!-- 对象列表 -->
     <div class="objects-section" v-if="mud.targets && mud.targets.length > 0">
-      <div class="section-header">当前场景</div>
+      <!-- <div class="section-header">当前场景</div> -->
       <button class="obj-btn" v-for="target in mud.targets" :key="target.key" @click="handleObjectClick(target)">
         <span v-html="target.labelHtml"></span>
       </button>

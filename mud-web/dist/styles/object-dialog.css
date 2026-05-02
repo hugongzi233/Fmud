@@ -1,0 +1,138 @@
+/* 对象交互窗口 - 最高层级 */
+.pc-object-dialog {
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  width: 450px;
+  max-width: 90vw;
+  max-height: 70vh;
+  background: #2a2015;
+  border: 2px solid #666;
+  border-radius: 6px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  z-index: 99999 !important;
+  display: flex !important;
+  flex-direction: column;
+}
+
+.pc-dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, #3a2a1a 0%, #2a1f15 100%);
+  border-bottom: 2px solid #555;
+  color: #e6bf6b;
+}
+
+.pc-dialog-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.pc-dialog-close {
+  background: none;
+  border: none;
+  color: #ccc;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.pc-dialog-close:hover {
+  color: #fff;
+}
+
+.pc-dialog-content {
+  padding: 14px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.pc-text-input-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pc-text-prompt {
+  color: #d4c5a0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.pc-text-input-row {
+  display: flex;
+  gap: 8px;
+}
+
+.pc-text-input {
+  flex: 1;
+  padding: 8px 12px;
+  background: #1a1510;
+  border: 1px solid #555;
+  border-radius: 4px;
+  color: #e6bf6b;
+  font-size: 14px;
+  outline: none;
+}
+
+.pc-text-input:focus {
+  border-color: #e6bf6b;
+}
+
+.pc-text-submit-btn {
+  padding: 8px 16px;
+  background: #3a2a1a;
+  border: 1px solid #e6bf6b;
+  border-radius: 4px;
+  color: #e6bf6b;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.pc-text-submit-btn:hover {
+  background: #4a3a2a;
+}
+
+.pc-dialog-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.pc-dialog-grid.cols-1 {
+  grid-template-columns: 1fr;
+}
+
+.pc-dialog-grid.cols-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.pc-dialog-grid.cols-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.pc-dialog-grid.cols-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.pc-dialog-btn {
+  padding: 10px 14px;
+  background: linear-gradient(135deg, #3a2a1a 0%, #2a1f15 100%);
+  border: 1px solid #555;
+  border-radius: 4px;
+  color: #d4c5a0;
+  cursor: pointer;
+  font-size: 14px;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.pc-dialog-btn:hover {
+  background: linear-gradient(135deg, #4a3a2a 0%, #3a2f25 100%);
+  border-color: #e6bf6b;
+  color: #e6bf6b;
+}

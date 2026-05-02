@@ -99,7 +99,13 @@ function renderStyledText(raw, state) {
   if (state.fg) style.push(`color:${state.fg}`);
   if (state.bg) style.push(`background:${state.bg}`);
   if (state.bold) style.push('font-weight:800');
-  if (state.size) style.push(`font-size:${state.size}px`);
+  if (state.size) {
+    // 将 Android px 转换为 Web CSS px
+    // Android px 通常需要考虑屏幕密度，这里使用简单的缩放比例
+    // 假设 Android 设计基准为 2x 密度，所以除以 2
+    const webSize = Math.round(state.size * 0.5);
+    style.push(`font-size:${webSize}px`);
+  }
   style.push('white-space:pre-wrap');
   // 注意：不在这里转换换行符，让 CSS white-space:pre-wrap 处理实际的换行
   const content = escapeHtml(text);
@@ -355,7 +361,7 @@ export function parseStatusBars(raw) {
     let percentA = 0;
     let percentB = null;
     
-    // 使用原始标签文本（如"小狐"、"气血.350"）
+    // 使用原始标签文本（如"气血.350"）
     const label = parts[0] || `属性 ${index + 1}`;
     
     if (valueParts.length === 3) {

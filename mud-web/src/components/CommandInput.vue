@@ -31,7 +31,6 @@ const sendCommand = () => {
   gap: 4px;
   padding: 6px;
   background: rgba(30, 25, 20, 0.8);
-  border-top: 1px solid #555;
 }
 
 .command-input-field {

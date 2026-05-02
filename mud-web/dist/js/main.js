@@ -119,6 +119,7 @@ const mudAppOptions = {
         { key: 'east', label: '东', cmd: 'east', visible: false }
       ],
       statusBars: [],
+      allowMainFeed: false,  // 控制是否允许在主窗口显示消息（收到015后才允许）
       dialog: {
         visible: false,
         title: '对话框',
@@ -382,6 +383,7 @@ const mudAppOptions = {
       this.guiTitle = '';
       this.guiHtml = '';
       this.guiActions = [];
+      this.allowMainFeed = false;  // 重置标志位，等待015消息
       this.gameState = {
         serverKey: '',
         loginQueued: false,
@@ -642,7 +644,7 @@ const mudAppOptions = {
           
           this.actionBlocks = [{ 
             key: `a-${Date.now()}`, 
-            title: '交互面板', 
+            title: '提示', 
             kind: '001', 
             cols: 1, 
             items: [{
@@ -668,6 +670,19 @@ const mudAppOptions = {
           } else {
             this.exits = newExits;
           }
+          return;
+        }
+        case '903': {
+          // 删除指定出口，payload 是出口的 cmd 字段（如 "northwest"、"eastup" 等）
+          const exitCmd = payload.trim();
+          if (this.exits && this.exits.length > 0) {
+            this.exits = this.exits.filter(exit => exit.cmd !== exitCmd);
+          }
+          return;
+        }
+        case '913': {
+          // 清除所有出口
+          this.exits = [];
           return;
         }
         case '004':
@@ -749,6 +764,7 @@ const mudAppOptions = {
           this.showMoreText = true;
           return;
         case '015':
+          this.allowMainFeed = true;  // 收到015消息后允许主窗口显示消息
           this.pushToast(payload);
           this.appendSystem(payload);
           return;
@@ -816,6 +832,9 @@ const mudAppOptions = {
     },
     appendMain(text) {
       if (!stripAnsiLike(text)) return;
+      // 在收到015消息之前，不允许在主窗口显示消息
+      if (!this.allowMainFeed) return;
+      
       const rawText = String(text || '');
       this.settings = this.settings || {};
       if (typeof this.settings.showMycmdsInMain === 'undefined') this.settings.showMycmdsInMain = false;

@@ -55,7 +55,6 @@
         <div class="pc-tabs">
           <button class="pc-tab" :class="{ active: mud.feedTab === 'main' }" @click="mud.feedTab = 'main'">主界面</button>
           <button class="pc-tab" :class="{ active: mud.feedTab === 'system' }" @click="mud.feedTab = 'system'">系统信息</button>
-          <button class="pc-tab" :class="{ active: mud.feedTab === 'fight' }" @click="mud.feedTab = 'fight'">战斗</button>
         </div>
 
         <!-- 信息内容区 -->

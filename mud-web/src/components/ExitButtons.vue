@@ -98,7 +98,7 @@ const sendExit = (direction) => {
 .exits-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  grid-template-rows: repeat(3, 45px);
+  grid-template-rows: repeat(3, 35px);
   gap: 4px;
 }
 
@@ -106,7 +106,7 @@ const sendExit = (direction) => {
   background: linear-gradient(135deg, #4a3a2a 0%, #3a2f25 100%);
   border: 1px solid #666;
   color: #ddbb99;
-  font-size: 13px;
+  font-size: 12px;
   cursor: pointer;
   transition: all 0.2s;
   border-radius: 4px;
@@ -124,7 +124,7 @@ const sendExit = (direction) => {
 .exit-btn.center {
   background: linear-gradient(135deg, #5a4a3a 0%, #4a3f35 100%);
   font-weight: bold;
-  font-size: 14px;
+  font-size: 12.5px;
 }
 
 .exit-placeholder {

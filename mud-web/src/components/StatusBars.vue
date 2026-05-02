@@ -103,7 +103,7 @@ const getBarColor = (bar) => {
 .attrbar {
   position: relative;
   flex: 1;
-  height: 28px;
+  height: 24px;
   cursor: pointer;
   overflow: hidden;
 }
@@ -153,7 +153,7 @@ const getBarColor = (bar) => {
   align-items: center;
   justify-content: center;
   color: #dddddd;
-  font-size: 11px;
+  font-size: 8px;
   font-weight: 500;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
   white-space: nowrap;

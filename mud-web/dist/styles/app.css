@@ -17,10 +17,22 @@
   --topbar-h: 58px;
 }
 
+/* Maple Mono 字体定义 */
+@font-face {
+  font-family: 'Maple Mono';
+  src: url('/fonts/MapleMono-CN-Regular.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 * { box-sizing: border-box; }
 html, body, #app { height: 100%; margin: 0; }
 body {
-  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+ font-family: -apple-system,BlinkMacSystemFont,Helvetica Neue,PingFang SC,Microsoft YaHei,Source Han Sans SC,Noto Sans CJK SC,WenQuanYi Micro Hei,sans-serif;
+  font-feature-settings: 'liga' 0, 'calt' 0;
+  -webkit-font-feature-settings: 'liga' 0, 'calt' 0;
+  font-variant-ligatures: none;
   background:
     radial-gradient(circle at top left, rgba(230,191,107,0.12), transparent 30%),
     radial-gradient(circle at bottom right, rgba(201,125,57,0.10), transparent 28%),
