@@ -51,7 +51,7 @@
                                 <div class="mini-item" v-for="(block, index) in mud.dialog.blocks" :key="index" v-html="mud.renderBlock(block)"></div>
                             </div>
                             <div class="dialog-items" v-if="mud.dialog.items.length">
-                                <button class="item-card" v-for="item in mud.dialog.items" :key="item.key" @click="mud.sendCommand('litem ' + item.key)">
+                                <button class="item-card" :class="mud.itemQualityClass(item.bg)" v-for="item in mud.dialog.items" :key="item.key" @click="mud.sendCommand('litem ' + item.key)">
                                     <img class="item-image" :src="item.image" :alt="item.label" @error="item.image = mud.fallbackItemImage" />
                                     <div class="item-label">{{ item.label }}</div>
                                 </button>
@@ -65,6 +65,10 @@
                             <div class="compact-item" v-if="mud.dialog.money">
                                 <div class="row between"><strong>金钱</strong><span class="tag orange">GOLD</span></div>
                                 <div class="mini-note">{{ mud.dialog.money }}</div>
+                            </div>
+                            <div class="compact-item" v-if="mud.dialog.hasQuantity">
+                                <div class="row between"><strong>数量</strong><span class="tag gray">$N</span></div>
+                                <div class="mini-note">将替换确认指令中的 $N</div>
                             </div>
                             <div class="field" v-if="mud.dialog.numberNeeded">
                                 <div class="label">数字输入</div>
