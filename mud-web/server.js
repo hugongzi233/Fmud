@@ -263,13 +263,6 @@ wss.on('connection', (ws) => {
         // write raw bytes for inspection
         try { if (rawLog) rawLog.write(chunk); } catch (e) {}
         
-        // 调试：检查是否收到012消息
-        const chunkStr = chunk.toString('hex');
-        if (chunkStr.includes('1b303132')) { // \u001b012的十六进制
-          console.log('[server] 检测到012消息！chunk长度:', chunk.length);
-          console.log('[server] chunk前100字节hex:', chunkStr.substring(0, 200));
-        }
-        
         pending = Buffer.concat([pending, chunk]);
         let lineBreak = pending.indexOf(0x0a);
         while (lineBreak !== -1) {
@@ -278,14 +271,6 @@ wss.on('connection', (ws) => {
           try {
             const detected = detectDecode(lineBuffer, ws.encoding);
             let text = detected.text.replace(/\r$/, '');
-            
-            // 调试：检查转发前的文本
-            if (text.includes('\u001b012') || /0{3,}012/.test(text)) {
-              console.log('[server] 转发前检测到012消息！');
-              console.log('[server] 文本长度:', text.length);
-              console.log('[server] 第一个字符charCode:', text.charCodeAt(0));
-              console.log('[server] 是否包含ESC:', text.includes('\u001b'));
-            }
             
             ws.send(JSON.stringify({ type: 'data', text, raw: lineBuffer.toString('base64'), encoding: detected.encoding }));
           } catch (err) {

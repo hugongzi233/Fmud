@@ -327,7 +327,8 @@ const mudAppOptions = {
         return;
       }
       if (message.type === 'data') {
-        this.processIncomingText(String(message.text || ''));
+        const textToProcess = String(message.text || '');
+        this.processIncomingText(textToProcess);
       }
     },
     processIncomingText(text) {
@@ -364,7 +365,8 @@ const mudAppOptions = {
       }
       const handshakeIndex = String(text || '').indexOf('ver');
       // allow ver to be preceded by some non-ASCII/garbage bytes — check within first 80 chars
-      if (handshakeIndex !== -1 && handshakeIndex <= 80) {
+      // 但必须确保ver是在文本开头附近，而不是在payload中间
+      if (handshakeIndex !== -1 && handshakeIndex <= 80 && handshakeIndex < 10) {
         const line = String(text || '').slice(handshakeIndex).split(/\r?\n/)[0];
         const parts = line.split(',');
         const key = parts[1] || '';
