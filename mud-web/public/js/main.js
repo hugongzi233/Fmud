@@ -596,10 +596,9 @@ const mudAppOptions = {
           this.showMap = true;
           return;
         case '012': {
-          console.log('[DEBUG] 收到012消息，原始payload:', payload);
           const parsed = parseStatusBars(payload);
-          console.log('[DEBUG] 解析后的statusBars:', parsed);
-          this.statusBars = parsed;
+          // 使用splice确保Vue响应式更新
+          this.statusBars.splice(0, this.statusBars.length, ...parsed);
           return;
         }
         case '013':
