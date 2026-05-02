@@ -175,35 +175,7 @@
       </div>
     </div>
 
-    <!-- 对象交互对话框 -->
-    <div class="pc-object-dialog" v-if="mud.actionBlocks && mud.actionBlocks.length > 0">
-      <div class="pc-dialog-header">
-        <h3>{{ mud.actionBlocks[0].title }}</h3>
-        <button class="pc-dialog-close" @click="closeActionBlocks">×</button>
-      </div>
-      <div class="pc-dialog-content">
-        <!-- 输入框类型（001消息） -->
-        <div v-if="mud.actionBlocks[0].kind === '001'" class="pc-text-input-container">
-          <div class="pc-text-prompt" v-html="mud.actionBlocks[0].items[0]?.labelHtml"></div>
-          <div class="pc-text-input-row">
-            <input 
-              type="text" 
-              class="pc-text-input" 
-              v-model="textInputValue" 
-              @keyup.enter="handleTextInputSubmit"
-              placeholder="请输入内容..."
-            />
-            <button class="pc-text-submit-btn" @click="handleTextInputSubmit">确定</button>
-          </div>
-        </div>
-        <!-- 普通按钮类型 -->
-        <div v-else class="pc-dialog-grid" :class="'cols-' + (mud.actionBlocks[0].cols || 2)">
-          <button class="pc-dialog-btn" v-for="item in mud.actionBlocks[0].items" :key="item.key" @click="handleActionItemClick(item)">
-            <span v-html="item.labelHtml"></span>
-          </button>
-        </div>
-      </div>
-    </div>
+    <!-- 动作块弹窗已移至 GameDialogs.vue 统一管理 -->
   </div>
 </template>
 
@@ -215,9 +187,6 @@ import CommandInput from './CommandInput.vue';
 import StatusBars from './StatusBars.vue';
 
 const mud = inject('mud');
-
-// 输入框类型的文本值
-const textInputValue = ref('');
 
 // 消息容器的 ref
 const leftFeed = ref(null);
@@ -272,33 +241,6 @@ watch(() => mud.allChatHtml, () => {
     }
   }
 });
-
-// 监听 actionBlocks 变化，初始化输入框默认值
-watch(() => mud.actionBlocks, (newBlocks) => {
-  if (!newBlocks || newBlocks.length === 0) {
-    // 关闭弹窗时清空输入框
-    textInputValue.value = '';
-    return;
-  }
-  
-  const block = newBlocks[0];
-  if (block.kind === '001' && block.items && block.items.length > 0) {
-    const item = block.items[0];
-    
-    // 检查是否是自定义按钮编辑
-    if (item.cmdPrefix === 'CUSTOM_EDIT' && item.customData) {
-      // 设置初始值为 "名称,指令" 格式
-      const { currentLabel, currentCmd } = item.customData;
-      textInputValue.value = `${currentLabel || ''},${currentCmd || ''}`;
-    } else {
-      // 普通输入框，清空或根据 item 设置默认值
-      textInputValue.value = '';
-    }
-  } else {
-    // 非 001 类型，清空输入框
-    textInputValue.value = '';
-  }
-}, { deep: true });
 
 // 计算自定义出口（非标准方向的出口）
 const customExits = computed(() => {
@@ -431,55 +373,6 @@ const handleCustomCmdLongPress = (event, cmd, buttonIndex) => {
   }];
   
   // textInputValue 会通过 watch 自动初始化
-};
-
-// 处理输入框提交（001消息类型）
-const handleTextInputSubmit = () => {
-  if (!mud.actionBlocks || mud.actionBlocks.length === 0) return;
-  
-  const item = mud.actionBlocks[0].items[0];
-  
-  // 检查是否是自定义按钮编辑
-  if (item.cmdPrefix === 'CUSTOM_EDIT' && item.customData) {
-    const { buttonIndex, currentLabel, currentCmd } = item.customData;
-    const input = textInputValue.value.trim();
-    
-    // 解析输入：格式为 "名称,指令"
-    const parts = input.split(',');
-    if (parts.length >= 2) {
-      const label = parts[0].trim();
-      const cmd = parts.slice(1).join(',').trim(); // 支持指令中包含逗号
-      
-      if (label && cmd) {
-        mud.saveCustomButton(buttonIndex, label, cmd);
-      } else {
-        mud.pushToast('请填写快捷键名称和指令');
-      }
-    } else {
-      mud.pushToast('格式错误，请使用：名称,指令');
-    }
-    
-    closeActionBlocks();
-    return;
-  }
-  
-  // 普通的 001 消息处理
-  if (!item || !item.cmdPrefix) return;
-  
-  // 发送命令：命令前缀 + 用户输入的内容
-  const fullCmd = `${item.cmdPrefix} ${textInputValue.value.trim()}`;
-  mud.sendCommand(fullCmd);
-  
-  // 清空输入框并关闭对话框
-  textInputValue.value = '';
-  closeActionBlocks();
-};
-
-// 关闭动作块
-const closeActionBlocks = () => {
-  if (mud.actionBlocks) {
-    mud.actionBlocks = [];
-  }
 };
 
 // 处理全局点击事件 - 支持所有区域的 mud-link 点击
@@ -1068,59 +961,6 @@ onUnmounted(() => {
   line-height: 1.6;
 }
 
-/* 对象交互窗口 */
-.pc-object-dialog {
-  position: fixed !important;
-  top: 50% !important;
-  left: 50% !important;
-  transform: translate(-50%, -50%) !important;
-  width: 450px;
-  max-width: 90vw;
-  max-height: 70vh;
-  background: #2a2015;
-  border: 2px solid #666;
-  border-radius: 6px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
-  z-index: 10100 !important;
-  display: flex !important;
-  flex-direction: column;
-}
-
-.pc-dialog-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 14px;
-  background: linear-gradient(135deg, #3a2a1a 0%, #2a1f15 100%);
-  border-bottom: 2px solid #555;
-  border-radius: 4px 4px 0 0;
-}
-
-.pc-dialog-header h3 {
-  color: #e6bf6b;
-  font-size: 15px;
-  margin: 0;
-}
-
-.pc-dialog-close {
-  background: transparent;
-  border: none;
-  color: #ddbb99;
-  font-size: 22px;
-  cursor: pointer;
-  padding: 0 6px;
-  line-height: 1;
-}
-
-.pc-dialog-close:hover {
-  color: #ff6b6b;
-}
-
-.pc-dialog-content {
-  padding: 14px;
-  overflow-y: auto;
-}
-
 /* 输入框类型容器（001消息） */
 .pc-text-input-container {
   display: flex;
@@ -1178,24 +1018,6 @@ onUnmounted(() => {
 
 .pc-text-submit-btn:active {
   transform: scale(0.98);
-}
-
-/* 普通按钮类型 */
-.pc-dialog-grid {
-  display: grid;
-  gap: 6px;
-}
-
-.pc-dialog-grid.cols-2 {
-  grid-template-columns: repeat(2, 1fr);
-}
-
-.pc-dialog-grid.cols-3 {
-  grid-template-columns: repeat(3, 1fr);
-}
-
-.pc-dialog-grid.cols-4 {
-  grid-template-columns: repeat(4, 1fr);
 }
 
 /* 响应式设计 */

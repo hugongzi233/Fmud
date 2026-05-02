@@ -1018,31 +1018,55 @@ const mudAppOptions = {
           return;
         }
         case '007': {
-          this.showGui = true;
-          this.guiTitle = extractGuiTitle(payload);
-          this.guiTitleHtml = renderMudText(this.guiTitle, createAnsiState(), { mode: 'dark' });
-          this.guiColumns = 3; // 默认3列
-          // 将$br#转换为\n换行符，让renderStyledText内部的replace(/\n/g, '<br/>')处理
-          const processedPayload = payload.replace(/\$br#/g, '\n');
-          this.guiHtml = renderMudText(processedPayload, createAnsiState(), { mode: 'dark' });
-          // 不清空guiActions1和guiActions2，等待008/009消息设置
-          this.guiTab = 'content';
+          // 如果当前有 actionBlocks，将 007 的 HTML 内容附加到其中
+          if (this.actionBlocks && this.actionBlocks.length > 0) {
+            const processedPayload = payload.replace(/\$br#/g, '\n');
+            this.actionBlocks[0].guiHtml = renderMudText(processedPayload, createAnsiState(), { mode: 'dark' });
+            // ✅ 不要修改 kind，保持原有的 001 类型
+          } else {
+            // 否则使用原有的 GUI 弹窗逻辑
+            this.showGui = true;
+            this.guiTitle = extractGuiTitle(payload);
+            this.guiTitleHtml = renderMudText(this.guiTitle, createAnsiState(), { mode: 'dark' });
+            this.guiColumns = 3;
+            const processedPayload = payload.replace(/\$br#/g, '\n');
+            this.guiHtml = renderMudText(processedPayload, createAnsiState(), { mode: 'dark' });
+            this.guiTab = 'content';
+          }
           return;
         }
         case '008': {
           const parsed = parseActionItems(payload);
-          this.showGui = true;
-          this.guiColumns = parsed.columns || 3;
-          this.guiActions1 = parsed.items;
-          this.guiTab = 'actions';
+          
+          // 如果当前有 actionBlocks，将 008 的按钮附加到其中
+          if (this.actionBlocks && this.actionBlocks.length > 0) {
+            this.actionBlocks[0].guiActions1 = parsed.items;
+            this.actionBlocks[0].guiColumns = parsed.columns || 3;
+            // ✅ 不要修改 kind，保持原有的 001 类型
+          } else {
+            // 否则使用原有的 GUI 弹窗逻辑
+            this.showGui = true;
+            this.guiColumns = parsed.columns || 3;
+            this.guiActions1 = parsed.items;
+            this.guiTab = 'actions';
+          }
           return;
         }
         case '009': {
           const parsed = parseActionItems(payload);
-          this.showGui = true;
-          this.guiColumns = parsed.columns || 3;
-          this.guiActions2 = parsed.items;
-          this.guiTab = 'actions';
+          
+          // 如果当前有 actionBlocks（如 001 输入框），将 009 的按钮附加到 actionBlocks 中
+          if (this.actionBlocks && this.actionBlocks.length > 0) {
+            // 将 009 的按钮作为额外的 items 添加到 actionBlocks
+            this.actionBlocks[0].guiButtons = parsed.items;
+            this.actionBlocks[0].guiColumns = parsed.columns || 3;
+          } else {
+            // 否则使用原有的 GUI 弹窗逻辑
+            this.showGui = true;
+            this.guiColumns = parsed.columns || 3;
+            this.guiActions2 = parsed.items;
+            this.guiTab = 'actions';
+          }
           return;
         }
         case '010':

@@ -139,6 +139,27 @@ button:active { transform: translateY(1px); }
   background: rgba(0, 0, 0, 0.5);
   color: #fff;
 }
+.dialog-close-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  font-size: 20px;
+  line-height: 1;
+  padding: 0;
+  background: rgba(0, 0, 0, 0.3);
+  color: #ccc;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.2s;
+}
+.dialog-close-btn:hover {
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+}
 .gui-content { white-space: normal; line-height: 1.6; }
 .hero { display:flex; flex-direction:column; }
 .hero-actions, .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
@@ -237,7 +258,7 @@ button:active { transform: translateY(1px); }
 .overlay {
   position: fixed; inset:0; background: rgba(0,0,0,.72); z-index:10001; display:flex; align-items:center; justify-content:center; padding:16px;
 }
-.overlay-card { width:min(800px, 90vw); max-height: 92vh; display:flex; flex-direction:column; }
+.overlay-card { width:min(800px, 90vw); max-height: 92vh; display:flex; flex-direction:column; position: relative; }
 .modal-grid, .dialog-grid { display:grid; gap:16px; }
 .modal-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
 .dialog-grid { grid-template-columns: minmax(0,1.08fr) minmax(300px, .92fr); }
