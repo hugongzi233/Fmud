@@ -1,0 +1,568 @@
+<template>
+  <div class="mud-android-screen" v-if="mud && mud.screen !== 'home'">
+    <!-- 左侧对象列表 -->
+    <div class="left-panel">
+      <div class="target-list" v-if="mud.targets.length">
+        <button class="target-btn" v-for="target in mud.targets" :key="target.key" @click="mud.sendTargetCmd(target)">
+          <div v-html="target.labelHtml"></div>
+        </button>
+      </div>
+    </div>
+
+    <!-- 分隔线 -->
+    <div class="divider-vertical"></div>
+
+    <!-- 主内容区域 -->
+    <div class="main-content">
+      <!-- 顶部信息栏 -->
+      <div class="top-bar">
+        <div class="top-info" v-html="mud.topInfo || ''"></div>
+      </div>
+
+      <!-- 标题栏 -->
+      <div class="title-bar">
+        <div class="location-name">{{ mud.locationName || '当前位置' }}</div>
+        <div class="title-buttons">
+          <button class="title-btn" @click="mud.toggleStory">{{ mud.storyVisible ? '-' : '+' }}</button>
+        </div>
+      </div>
+
+      <!-- 分隔线 -->
+      <div class="divider-horizontal"></div>
+
+      <!-- 故事描述区域 -->
+      <div class="story-area" :class="{ hidden: !mud.storyVisible }">
+        <div class="story-text" v-html="mud.storyHtml"></div>
+      </div>
+
+      <!-- 分隔线 -->
+      <div class="divider-horizontal"></div>
+
+      <!-- 主信息显示区 -->
+      <div class="main-feed-area">
+        <div class="feed-tabs">
+          <button class="feed-tab" :class="{ active: mud.feedTab === 'main' }" @click="mud.feedTab = 'main'">主界面</button>
+          <button class="feed-tab" :class="{ active: mud.feedTab === 'system' }" @click="mud.feedTab = 'system'">信息</button>
+          <button class="feed-tab" :class="{ active: mud.feedTab === 'chat' }" @click="mud.feedTab = 'chat'">聊天</button>
+          <button class="feed-tab" :class="{ active: mud.feedTab === 'fight' }" @click="mud.feedTab = 'fight'">战斗</button>
+        </div>
+        <div class="feed-content" ref="leftFeed" @click="mud.handleFeedClick" v-html="mud.activeFeedHtml"></div>
+      </div>
+
+      <!-- 分隔线 -->
+      <div class="divider-horizontal"></div>
+
+      <!-- 扩展命令区（方向按钮 + 自定义按钮） -->
+      <div class="exits-area">
+        <div class="exits-grid">
+          <div class="exit-center">
+            <button class="exit-btn center" @click="mud.sendCommand('look')">{{ mud.locationName || '观察' }}</button>
+          </div>
+          <button class="exit-btn n" v-show="hasExit('north')" @click="mud.sendCommand('north')">北</button>
+          <button class="exit-btn s" v-show="hasExit('south')" @click="mud.sendCommand('south')">南</button>
+          <button class="exit-btn w" v-show="hasExit('west')" @click="mud.sendCommand('west')">西</button>
+          <button class="exit-btn e" v-show="hasExit('east')" @click="mud.sendCommand('east')">东</button>
+          <button class="exit-btn nw" v-show="hasExit('northwest')" @click="mud.sendCommand('northwest')">西北</button>
+          <button class="exit-btn ne" v-show="hasExit('northeast')" @click="mud.sendCommand('northeast')">东北</button>
+          <button class="exit-btn sw" v-show="hasExit('southwest')" @click="mud.sendCommand('southwest')">西南</button>
+          <button class="exit-btn se" v-show="hasExit('southeast')" @click="mud.sendCommand('southeast')">东南</button>
+        </div>
+        <div class="custom-cmds">
+          <button class="cmd-btn" @click="mud.showCustomCmds = !mud.showCustomCmds">自定<br/>按钮</button>
+          <button class="cmd-btn" v-for="(cmd, idx) in mud.customCmds.slice(0, 1)" :key="idx" @click="mud.sendCommand(cmd.cmd)">
+            <span v-html="cmd.label || cmd.cmd"></span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 自定义命令面板 -->
+      <div class="custom-cmds-panel" v-show="mud.showCustomCmds">
+        <div class="cmd-row">
+          <button class="cmd-btn-small" v-for="(cmd, idx) in mud.customCmds.slice(0, 5)" :key="'row1-' + idx" @click="mud.sendCommand(cmd.cmd)" v-html="cmd.label || cmd.cmd"></button>
+        </div>
+        <div class="cmd-row">
+          <button class="cmd-btn-small" v-for="(cmd, idx) in mud.customCmds.slice(5, 10)" :key="'row2-' + idx" @click="mud.sendCommand(cmd.cmd)" v-html="cmd.label || cmd.cmd"></button>
+        </div>
+      </div>
+
+      <!-- 分隔线 -->
+      <div class="divider-horizontal"></div>
+
+      <!-- 底部菜单栏 -->
+      <div class="bottom-menu">
+        <button class="menu-icon-btn" @click="mud.toggleChatRoom" title="聊天">💬</button>
+        <button class="menu-btn" @click="mud.sendCommand('score')">属性</button>
+        <button class="menu-btn" @click="mud.sendCommand('i')">物品</button>
+        <button class="menu-btn" @click="mud.sendCommand('skills')">技能</button>
+        <button class="menu-btn" @click="mud.editCustomCmd(3)">长按<br/>修改</button>
+        <button class="menu-btn" @click="mud.editCustomCmd(4)">长按<br/>修改</button>
+        <button class="menu-btn" @click="mud.editCustomCmd(5)">长按<br/>修改</button>
+        <button class="menu-icon-btn-right" @click="mud.openSettings" title="设置">⚙️</button>
+      </div>
+    </div>
+
+    <!-- 聊天室弹窗 -->
+    <div class="chat-overlay" v-show="mud.chatRoomVisible">
+      <div class="chat-container">
+        <div class="chat-tabs">
+          <button class="chat-tab" :class="{ active: mud.chatTab === 'all' }" @click="mud.chatTab = 'all'">全部</button>
+          <button class="chat-tab" :class="{ active: mud.chatTab === 'system' }" @click="mud.chatTab = 'system'">系统</button>
+        </div>
+        <div class="chat-content">
+          <div class="chat-feed" v-html="mud.chatTab === 'all' ? mud.allChatHtml : mud.systemChatHtml"></div>
+        </div>
+        <div class="chat-bottom">
+          <button class="close-chat-btn" @click="mud.toggleChatRoom">关 闭</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { inject, computed } from 'vue';
+
+const mud = inject('mud');
+
+const hasExit = (direction) => {
+  return mud.exits && mud.exits.some(exit => exit.key === direction && exit.visible);
+};
+</script>
+
+<style scoped>
+/* Android风格的游戏界面 - 使用!important提高优先级 */
+.mud-android-screen {
+  display: flex !important;
+  height: 100vh !important;
+  background: #221505 !important;
+  padding: 1px !important;
+  overflow: hidden !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  z-index: 9999 !important;
+}
+
+/* 左侧面板 */
+.left-panel {
+  width: 80px;
+  background: #221505;
+  overflow-y: auto;
+  padding: 2px 0;
+}
+
+.target-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.target-btn {
+  background: rgba(34, 34, 34, 0.6);
+  border: 1px solid #444;
+  color: #ddbb99;
+  padding: 6px 4px;
+  font-size: 11px;
+  text-align: center;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.target-btn:hover {
+  background: rgba(50, 50, 50, 0.8);
+}
+
+/* 垂直分隔线 */
+.divider-vertical {
+  width: 1px;
+  background: #666666;
+  margin: 0 1px;
+}
+
+/* 主内容区域 */
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: #221505;
+}
+
+/* 顶部信息栏 */
+.top-bar {
+  background: rgba(34, 34, 34, 0.5);
+  padding: 2px 8px;
+  border-bottom: 1px solid #666666;
+}
+
+.top-info {
+  color: #bbbbbb;
+  font-size: 12px;
+}
+
+/* 标题栏 */
+.title-bar {
+  background: linear-gradient(180deg, #3a2718, #24170e);
+  padding: 3px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #666666;
+}
+
+.location-name {
+  color: #eeeeee;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.title-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+.title-btn {
+  background: rgba(238, 238, 238, 0.13);
+  border: 1px solid rgba(238, 238, 238, 0.3);
+  color: #eeeeee;
+  padding: 2px 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+/* 水平分隔线 */
+.divider-horizontal {
+  height: 1px;
+  background: #666666;
+  width: 100%;
+}
+
+/* 故事描述区域 */
+.story-area {
+  padding: 5px;
+  background: #221505;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.story-area.hidden {
+  display: none;
+}
+
+.story-text {
+  color: #bbbbbb;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* 主信息区 */
+.main-feed-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 5px;
+}
+
+.feed-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.feed-tab {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(230, 191, 107, 0.12);
+  color: #aaaaaa;
+  padding: 4px 10px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.feed-tab.active {
+  background: linear-gradient(180deg, #3a2718, #24170e);
+  border-color: rgba(230, 191, 107, 0.4);
+  color: #ffe7bf;
+  font-weight: 600;
+}
+
+.feed-content {
+  flex: 1;
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.08);
+  padding: 8px;
+  border: 1px solid rgba(230, 191, 107, 0.12);
+  color: #ddbb99;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+/* 方向按钮区域 */
+.exits-area {
+  padding: 2px;
+  display: flex;
+  gap: 4px;
+  align-items: flex-start;
+}
+
+.exits-grid {
+  flex: 1;
+  position: relative;
+  height: 80px;
+  background: rgba(34, 34, 34, 0.3);
+  padding: 1px;
+}
+
+.exit-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.exit-btn {
+  position: absolute;
+  background: rgba(50, 50, 50, 0.6);
+  border: 1px solid #555;
+  color: #dddddd;
+  padding: 4px 8px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.exit-btn:hover {
+  background: rgba(70, 70, 70, 0.8);
+  border-color: #777;
+}
+
+.exit-btn.center {
+  background: rgba(255, 255, 85, 0.15);
+  border-color: rgba(255, 255, 85, 0.4);
+  color: #ffff55;
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.exit-btn.n { top: 2px; left: 50%; transform: translateX(-50%); }
+.exit-btn.s { bottom: 2px; left: 50%; transform: translateX(-50%); }
+.exit-btn.w { left: 2px; top: 50%; transform: translateY(-50%); }
+.exit-btn.e { right: 2px; top: 50%; transform: translateY(-50%); }
+.exit-btn.nw { top: 2px; left: 2px; }
+.exit-btn.ne { top: 2px; right: 2px; }
+.exit-btn.sw { bottom: 2px; left: 2px; }
+.exit-btn.se { bottom: 2px; right: 2px; }
+
+.custom-cmds {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 40px;
+}
+
+.cmd-btn {
+  background: rgba(34, 34, 34, 0.6);
+  border: 1px solid #444;
+  color: #888888;
+  padding: 4px;
+  font-size: 10px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.cmd-btn:hover {
+  background: rgba(50, 50, 50, 0.8);
+}
+
+/* 自定义命令面板 */
+.custom-cmds-panel {
+  padding: 2px;
+  background: rgba(34, 34, 34, 0.4);
+  border-top: 1px solid #666666;
+}
+
+.cmd-row {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 2px;
+}
+
+.cmd-btn-small {
+  flex: 1;
+  background: rgba(34, 34, 34, 0.6);
+  border: 1px solid #444;
+  color: #aaaaaa;
+  padding: 4px;
+  font-size: 10px;
+  text-align: center;
+  cursor: pointer;
+  margin: 1px;
+  transition: all 0.15s;
+}
+
+.cmd-btn-small:hover {
+  background: rgba(50, 50, 50, 0.8);
+}
+
+/* 底部菜单栏 */
+.bottom-menu {
+  display: flex;
+  align-items: center;
+  background: rgba(238, 238, 238, 0.13);
+  padding: 2px 4px;
+  gap: 2px;
+  border-top: 1px solid #666666;
+}
+
+.menu-icon, .menu-icon-right {
+  height: 15px;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.15s;
+}
+
+.menu-icon:hover, .menu-icon-right:hover {
+  opacity: 1;
+}
+
+.menu-icon-right {
+  margin-left: auto;
+  height: 10px;
+}
+
+.menu-icon-btn, .menu-icon-btn-right {
+  background: rgba(238, 238, 238, 0.13);
+  border: 1px solid transparent;
+  font-size: 16px;
+  padding: 2px 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.menu-icon-btn:hover, .menu-icon-btn-right:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.menu-icon-btn-right {
+  margin-left: auto;
+  font-size: 14px;
+}
+
+.menu-btn {
+  flex: 1;
+  background: rgba(238, 238, 238, 0.13);
+  border: 1px solid transparent;
+  color: #aaaaaa;
+  padding: 4px 2px;
+  font-size: 10px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.15s;
+  min-width: 40px;
+}
+
+.menu-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* 聊天室弹窗 */
+.chat-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.chat-container {
+  background: #242424;
+  border: 1px solid #444;
+  width: 90%;
+  max-width: 600px;
+  height: 80%;
+  display: flex;
+  flex-direction: column;
+  padding: 3px;
+}
+
+.chat-tabs {
+  display: flex;
+  gap: 2px;
+  border-bottom: 1px solid #444;
+  padding-bottom: 4px;
+}
+
+.chat-tab {
+  background: rgba(50, 50, 50, 0.6);
+  border: 1px solid #555;
+  color: #dddddd;
+  padding: 6px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.chat-tab.active {
+  background: rgba(80, 80, 80, 0.8);
+  border-color: #777;
+  color: #ffffff;
+}
+
+.chat-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.chat-feed {
+  color: #ddbb99;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.chat-bottom {
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px 4px 4px;
+  border-top: 1px solid #444;
+}
+
+.close-chat-btn {
+  background: linear-gradient(180deg, #3a3a3a, #2a2a2a);
+  border: 1px solid #555;
+  color: #dddddd;
+  padding: 8px 24px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.close-chat-btn:hover {
+  background: linear-gradient(180deg, #4a4a4a, #3a3a3a);
+}
+
+/* 滚动条样式 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(230, 191, 107, 0.3);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(230, 191, 107, 0.5);
+}

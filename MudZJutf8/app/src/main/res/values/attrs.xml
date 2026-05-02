@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="ImgTextBtn_ImgDrawHeight">2</declare-styleable>
+    <declare-styleable name="ImgTextBtn_ImgDrawMinWidth">3</declare-styleable>
+    <declare-styleable name="ImgTextBtn_ImgDrawMinHeight">4</declare-styleable>
+    <declare-styleable name="ImgTextBtn_ImgDrawMaxWidth">5</declare-styleable>
+    <declare-styleable name="ImgTextBtn_ImgDrawMaxHeight">6</declare-styleable>
+    <declare-styleable name="ImgTextBtn_TVText">7</declare-styleable>
+</resources>
