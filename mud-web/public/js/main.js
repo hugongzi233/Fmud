@@ -565,8 +565,8 @@ const mudAppOptions = {
           this.guiTitle = extractGuiTitle(payload);
           this.guiTitleHtml = renderMudText(this.guiTitle, createAnsiState(), { mode: 'dark' });
           this.guiColumns = 3; // 默认3列
-          // 先替换$br#为<br>标签，再渲染ANSI代码
-          const processedPayload = payload.replace(/\$br#/g, '<br>');
+          // 将$br#转换为\n换行符，让renderStyledText内部的replace(/\n/g, '<br/>')处理
+          const processedPayload = payload.replace(/\$br#/g, '\n');
           this.guiHtml = renderMudText(processedPayload, createAnsiState(), { mode: 'dark' });
           // 不清空guiActions1和guiActions2，等待008/009消息设置
           this.guiTab = 'content';
