@@ -275,8 +275,12 @@ export function parseActionItems(raw, defaultColumns = 2) {
       }
     }
     
-    const labelHtml = renderMudText(labelRaw, createAnsiState(), { mode: 'dark' });
-    const captionHtml = renderMudText(cmdPrefix || labelRaw, createAnsiState(), { mode: 'dark' });
+    // 将 $br# 转换为换行符，让 renderStyledText 内部的 white-space:pre-wrap 处理
+    const labelWithNewlines = labelRaw.replace(/\$br#/g, '\n');
+    const cmdWithNewlines = (cmdPrefix || labelRaw).replace(/\$br#/g, '\n');
+    
+    const labelHtml = renderMudText(labelWithNewlines, createAnsiState(), { mode: 'dark' });
+    const captionHtml = renderMudText(cmdWithNewlines, createAnsiState(), { mode: 'dark' });
     
     return {
       key: `${index}-${stripAnsiCodes(labelRaw)}`,
@@ -303,7 +307,9 @@ export function parseExitItems(raw) {
     const key = parts[0] || `exit-${index}`;
     const labelRaw = parts[1] || parts[0] || '';
     const cmd = (parts.length >= 3 && parts[2]) ? parts[2] : (parts[0] || parts[1] || '');
-    const labelHtml = renderMudText(labelRaw, createAnsiState(), { mode: 'dark' });
+    // 将 $br# 转换为换行符
+    const labelWithNewlines = labelRaw.replace(/\$br#/g, '\n');
+    const labelHtml = renderMudText(labelWithNewlines, createAnsiState(), { mode: 'dark' });
     return {
       key,
       label: stripAnsiCodes(labelRaw),
@@ -325,8 +331,11 @@ export function parseTargetItems(raw) {
     const labelRaw = parts[0] || `目标 ${index + 1}`;
     // prefer the last field as the actual command when multiple ':' are present
     const cmd = parts.length > 1 ? parts[parts.length - 1] : parts[0] || '';
-    const labelHtml = renderMudText(labelRaw, createAnsiState(), { mode: 'dark' });
-    const captionHtml = renderMudText(cmd || labelRaw, createAnsiState(), { mode: 'dark' });
+    // 将 $br# 转换为换行符
+    const labelWithNewlines = labelRaw.replace(/\$br#/g, '\n');
+    const cmdWithNewlines = (cmd || labelRaw).replace(/\$br#/g, '\n');
+    const labelHtml = renderMudText(labelWithNewlines, createAnsiState(), { mode: 'dark' });
+    const captionHtml = renderMudText(cmdWithNewlines, createAnsiState(), { mode: 'dark' });
     return {
       key: `${index}-${labelRaw}`,
       label: stripAnsiCodes(labelRaw),
@@ -419,7 +428,9 @@ export function parseQuickCmds(raw) {
     if (colonPos === -1) {
       // 没有冒号，整个作为label
       const labelRaw = working;
-      const labelHtml = renderMudText(labelRaw, createAnsiState(), { mode: 'dark' });
+      // 将 $br# 转换为换行符
+      const labelWithNewlines = labelRaw.replace(/\$br#/g, '\n');
+      const labelHtml = renderMudText(labelWithNewlines, createAnsiState(), { mode: 'dark' });
       return {
         key: `${index}-${stripAnsiCodes(labelRaw)}`,
         label: stripAnsiCodes(labelRaw),
@@ -432,7 +443,9 @@ export function parseQuickCmds(raw) {
     const labelRaw = working.slice(0, colonPos).trim();
     const cmd = working.slice(colonPos + 1).trim();
     
-    const labelHtml = renderMudText(labelRaw, createAnsiState(), { mode: 'dark' });
+    // 将 $br# 转换为换行符
+    const labelWithNewlines = labelRaw.replace(/\$br#/g, '\n');
+    const labelHtml = renderMudText(labelWithNewlines, createAnsiState(), { mode: 'dark' });
     
     return {
       key: `${index}-${stripAnsiCodes(labelRaw)}`,

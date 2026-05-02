@@ -4,7 +4,6 @@
     <div class="pc-left-sidebar">
       <!-- 对象列表 -->
       <div class="pc-objects-section" v-if="mud.targets && mud.targets.length > 0">
-        <div class="section-header">当前场景</div>
         <button class="obj-btn" v-for="target in mud.targets" :key="target.key" @click="handleObjectClick(target)">
           <span v-html="target.labelHtml"></span>
         </button>
@@ -13,7 +12,6 @@
       <!-- 左下角：其他出口 -->
       <div class="pc-left-bottom">
         <div class="custom-exits-section" v-if="customExits.length > 0">
-          <div class="section-header">其他出口</div>
           <button class="obj-btn" v-for="exit in customExits" :key="exit.key" @click="mud.sendCommand(exit.cmd)">
             <span v-html="exit.labelHtml"></span>
           </button>
@@ -72,7 +70,7 @@
       <!-- 聊天区域 -->
       <div class="pc-chat-section">
         <div class="pc-chat-header-mini">
-          <span>💬 聊天</span>
+          <span>聊天</span>
           <button class="pc-chat-expand-btn" @click="mud.toggleChatRoom" title="打开完整聊天室">⤢</button>
         </div>
         <div class="pc-chat-content-mini" ref="chatFeedMini" v-html="mud.allChatHtml || '<div style=\'color:#666;text-align:center;padding:20px;\'>暂无聊天消息</div>'"></div>
@@ -345,9 +343,7 @@ onUnmounted(() => {
   flex-direction: column;
   gap: 3px;
   padding: 6px;
-  background: rgba(30, 25, 20, 0.5);
   border-radius: 4px;
-  border: 1px solid #444;
   overflow-y: auto;
   max-height: calc(50vh - 100px);
 }
@@ -364,9 +360,7 @@ onUnmounted(() => {
   flex-direction: column;
   gap: 3px;
   padding: 6px;
-  background: rgba(30, 25, 20, 0.5);
   border-radius: 4px;
-  border: 1px solid #444;
   overflow-y: auto;
   max-height: 200px;
 }
