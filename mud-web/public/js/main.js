@@ -810,25 +810,21 @@ const mudAppOptions = {
             continue;
           }
           if (markerIdx === 0 && markerType === 'esc') {
-            // 特殊处理：检查是否为可变长度数字代码（如 \u001b0000008）
-            const numMatch = rest.match(/^\u001b(\d{3,})/);
+            // 只把固定 3 位协议码当成控制码，避免把 payload 开头的数字吞进去。
+            // 例外：0000008 是创建角色的特殊长码。
+            if (rest.startsWith('\u001b0000008')) {
+              this.showCreateChar = true;
+              this.createCharSex = '男性';
+              this.createCharName = '';
+              rest = rest.slice('\u001b0000008'.length);
+              continue;
+            }
+            const numMatch = rest.match(/^\u001b(\d{3})/);
             if (numMatch) {
-              const fullCode = numMatch[1];
-              const markerLen = 1 + fullCode.length;
-              
-              // 特殊处理：0000008 表示创建角色
-              if (fullCode === '0000008') {
-                this.showCreateChar = true;
-                this.createCharSex = '男性';
-                this.createCharName = '';
-                rest = rest.slice(markerLen);
-                continue;
-              }
-              
-              // 其他消息类型，截取后3位作为标准代码
-              const code = fullCode.slice(-3).padStart(3, '0');
+              const code = numMatch[1];
+              const markerLen = 4;
               const payload = rest.slice(markerLen);
-              
+
               try {
                 this.handleControlMessage('\u001b' + code + payload);
               } catch (e) {
