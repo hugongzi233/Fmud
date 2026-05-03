@@ -17,6 +17,7 @@
 </template>
 
 <script>
+import { getCurrentInstance } from 'vue';
 import mudAppOptions from '../public/js/main.js';
 import HomeScreen from './components/HomeScreen.vue';
 import GameScreen from './components/GameScreen.vue';
@@ -30,8 +31,16 @@ export default {
     AccountDialogs,
     GameDialogs
   },
+  setup() {
+    const instance = getCurrentInstance();
+    return {
+      provideMud() {
+        return instance.proxy;
+      }
+    };
+  },
   provide() {
-    return { mud: this };
+    return { mud: this.provideMud() };
   },
   ...mudAppOptions
 };

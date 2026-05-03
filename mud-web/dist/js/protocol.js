@@ -245,6 +245,8 @@ export function parseActionItems(raw, defaultColumns = 2) {
     let isTextInput = false;
     let cmdPrefix = '';
     let labelRaw = '';
+    let hasEscPrefix = false;  // ESC菜单标记
+    let escPayload = '';       // ESC菜单payload
     
     if (txtMarkerIndex !== -1) {
       // 包含 $txt# 标记，这是输入框类型
@@ -275,14 +277,21 @@ export function parseActionItems(raw, defaultColumns = 2) {
           const controlCode = cmdPrefix.slice(1, 4);
           // 对于 020 类型的控制码，提取后面的 payload
           if (controlCode === '020') {
-            cmdPrefix = cmdPrefix.slice(4).trim();
+            hasEscPrefix = true;
+            escPayload = cmdPrefix.slice(4).trim();
           }
         } else if (/^0{3,}\d{3}/.test(cmdPrefix)) {
           // 处理零前缀格式：000020...
           const match = cmdPrefix.match(/^0{3,}(\d{3})/);
           if (match && match[1] === '020') {
-            cmdPrefix = cmdPrefix.slice(match[0].length).trim();
+            hasEscPrefix = true;
+            escPayload = cmdPrefix.slice(match[0].length).trim();
           }
+        }
+        
+        // 如果有 ESC 020 前缀，保存原始数据用于弹窗
+        if (hasEscPrefix) {
+          cmdPrefix = escPayload;
         }
       } else {
         // 没有冒号，整个作为label
@@ -313,11 +322,14 @@ export function parseActionItems(raw, defaultColumns = 2) {
       key: buttonId ? `${buttonId}-${stripAnsiCodes(labelRaw)}` : `${index}-${stripAnsiCodes(labelRaw)}`,
       label: stripAnsiCodes(labelRaw),
       labelHtml,
-      cmd: String(cmdPrefix || '').trim(),
-      caption: stripAnsiCodes(cmdPrefix || labelRaw),
-      captionHtml,
+      // 如果有ESC菜单标记,cmd设为空,避免直接发送命令
+      cmd: hasEscPrefix ? '' : String(cmdPrefix || '').trim(),
+      caption: stripAnsiCodes(hasEscPrefix ? '(点击展开)' : (cmdPrefix || labelRaw)),
+      captionHtml: hasEscPrefix ? renderMudText('(点击展开)', createAnsiState(), { mode: 'dark' }) : captionHtml,
       isTextInput,  // 标记是否为输入框类型
-      cmdPrefix     // 保存命令前缀
+      cmdPrefix: hasEscPrefix ? '' : cmdPrefix,     // 有ESC菜单时清空cmdPrefix
+      hasEscMenu: hasEscPrefix || false,  // 标记是否有ESC菜单
+      escPayload: hasEscPrefix ? escPayload : ''  // 保存ESC菜单的payload
     };
   });
   return { columns, items };

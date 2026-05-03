@@ -1188,6 +1188,12 @@ const mudAppOptions = {
           this.moreHtml = renderMudText(payload.replace(/\$br#/g, '\n'), this.gameState.ansi, { mode: this.settings.mode });
           this.showMoreText = true;
           return;
+        case '014':
+          // 直接发送命令(ESC 014)
+          if (payload && payload.trim()) {
+            this.sendCommand(payload.trim());
+          }
+          return;
         case '015':
           this.allowMainFeed = true;  // 收到015消息后允许主窗口显示消息
           this.pushToast(payload);
@@ -1320,6 +1326,39 @@ const mudAppOptions = {
     sendCommand(cmd) {
       if (!cmd || !this.ws || this.ws.readyState !== WebSocket.OPEN) return;
       this.ws.send(JSON.stringify({ action: 'input', text: cmd + '\n' }));
+    },
+    handleEscMenu(payload) {
+      // 处理ESC 020菜单,使用现有的GUI弹窗机制
+      // ESC 020格式: 标签|命令$z2#标签|命令...
+      const items = String(payload || '').split('$z2#').filter(Boolean).map((entry, index) => {
+        const pipeIndex = entry.indexOf('|');
+        let labelRaw = '';
+        let cmdPrefix = '';
+        
+        if (pipeIndex !== -1) {
+          labelRaw = entry.slice(0, pipeIndex).trim();
+          cmdPrefix = entry.slice(pipeIndex + 1).trim();
+        } else {
+          labelRaw = entry;
+          cmdPrefix = '';
+        }
+        
+        const labelHtml = renderMudText(labelRaw, createAnsiState(), { mode: 'dark' });
+        
+        return {
+          key: `${index}-${labelRaw}`,
+          label: stripAnsiLike(labelRaw),
+          labelHtml,
+          cmd: cmdPrefix,
+          caption: stripAnsiLike(cmdPrefix),
+          captionHtml: renderMudText(cmdPrefix, createAnsiState(), { mode: 'dark' })
+        };
+      });
+      
+      this.showGui = true;
+      this.guiColumns = 3;
+      this.guiActions1 = items;
+      this.guiTab = 'actions';
     },
     sendRaw(text) {
       if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;

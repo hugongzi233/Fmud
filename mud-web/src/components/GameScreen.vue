@@ -490,6 +490,15 @@ const handleObjectClick = (target) => {
 
 // 处理动作项点击
 const handleActionItemClick = (item) => {
+  // 检查是否有ESC菜单标记
+  if (item.hasEscMenu && item.escPayload) {
+    // 触发弹窗而不是发送命令
+    console.log('检测到ESC菜单,触发弹窗:', item.escPayload);
+    // 调用mud对象的方法来处理ESC 020消息
+    mud.handleEscMenu(item.escPayload);
+    return;
+  }
+  
   if (item.cmd) {
     mud.sendCommand(item.cmd);
   } else if (item.key) {

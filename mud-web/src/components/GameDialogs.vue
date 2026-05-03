@@ -143,7 +143,8 @@ export default {
       dialog: { visible: false },
       closeGui: () => {},
       closeDialog: () => {},
-      sendCommand: () => {}
+      sendCommand: () => {},
+      handleEscMenu: () => {}  // 添加空实现,避免报错
     };
     
     const closeActionBlocks = () => {
@@ -153,6 +154,14 @@ export default {
     };
     
     const handleActionItemClick = (item) => {
+      // 检查是否有ESC菜单标记
+      if (item.hasEscMenu && item.escPayload) {
+        // 触发弹窗而不是发送命令
+        safeMud.handleEscMenu(item.escPayload);
+        closeActionBlocks();
+        return;
+      }
+      
       if (item.cmd) {
         safeMud.sendCommand(item.cmd);
       }
@@ -185,6 +194,13 @@ export default {
     };
     
     const handleGuiActionClick = (item) => {
+      // 检查是否有ESC菜单标记
+      if (item.hasEscMenu && item.escPayload) {
+        // 触发弹窗而不是发送命令,不关闭当前窗口
+        safeMud.handleEscMenu(item.escPayload);
+        return;
+      }
+      
       if (item.cmd) {
         safeMud.sendCommand(item.cmd);
       }
