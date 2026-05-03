@@ -144,6 +144,10 @@ const mudAppOptions = {
       },
       serverDraft: { name: '', host: '', port: '23', encoding: 'utf8', status: '' },
       registerForm: { id: '', pass: '', pass2: '', phone: '', email: '', name: '', sex: '男性' },
+      // 创建角色相关状态
+      showCreateChar: false,
+      createCharSex: '男性',
+      createCharName: '',
       ws: null,
       wsEncoding: 'utf8',
       gameState: {
@@ -750,6 +754,34 @@ const mudAppOptions = {
             continue;
           }
           if (markerIdx === 0 && markerType === 'esc') {
+            // 特殊处理：检查是否为可变长度数字代码（如 \u001b0000008）
+            const numMatch = rest.match(/^\u001b(\d{3,})/);
+            if (numMatch) {
+              const fullCode = numMatch[1];
+              const markerLen = 1 + fullCode.length;
+              
+              // 特殊处理：0000008 表示创建角色
+              if (fullCode === '0000008') {
+                this.showCreateChar = true;
+                this.createCharSex = '男性';
+                this.createCharName = '';
+                rest = rest.slice(markerLen);
+                continue;
+              }
+              
+              // 其他消息类型，截取后3位作为标准代码
+              const code = fullCode.slice(-3).padStart(3, '0');
+              const payload = rest.slice(markerLen);
+              
+              try {
+                this.handleControlMessage('\u001b' + code + payload);
+              } catch (e) {
+                // 不将原始payload回退到主界面
+              }
+              rest = rest.slice(markerLen + payload.length);
+              continue;
+            }
+            
             if (rest.length <= 4) {
               // marker-only (e.g. ESC+3digits with no payload yet) — pend until next incoming
               const pendingCode = rest.slice(1, 4);
@@ -1309,6 +1341,22 @@ const mudAppOptions = {
     },
     renderBlock(block) {
       return renderMudText(block, this.gameState.ansi, { mode: this.settings.mode });
+    },
+    // 创建角色相关方法
+    confirmCreateChar() {
+      if (!this.createCharName || this.createCharName.trim() === '') {
+        this.pushToast('请输入角色名称');
+        return;
+      }
+      // 发送创建角色命令：性别║║角色名称
+      const cmd = `${this.createCharSex}║║${this.createCharName}`;
+      this.sendRaw(cmd + '\n');
+      this.showCreateChar = false;
+    },
+    cancelCreateChar() {
+      this.showCreateChar = false;
+      this.createCharSex = '男性';
+      this.createCharName = '';
     }
   }
 };

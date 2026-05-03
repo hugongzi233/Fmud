@@ -105,8 +105,13 @@ function handleLogin() {
       if (result.email) mud.profile.email = result.email;
       if (mud.servers.length) mud.recentServer = mud.servers[0];
       
-      // 根据设置决定是否清空登录信息
+      // 先保存账号密码到 profile
+      mud.profile.id = form.id;
+      mud.profile.pass = form.pass;
+      
+      // 根据设置决定是否保留登录信息
       if (!mud.settings.rememberAccount) {
+        // 如果不记住账号，清空 profile 中的敏感信息
         mud.profile.id = '';
         mud.profile.pass = '';
         loginForm.value = { id: '', pass: '' };
