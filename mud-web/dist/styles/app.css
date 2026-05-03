@@ -119,7 +119,7 @@ button:active { transform: translateY(1px); }
 }
 .card-title { font-size: 13px; font-weight: 800; }
 .card-sub { font-size: 11px; color: var(--muted); margin-top:3px; line-height:1.45; }
-.card-body, .body, .overlay-body { padding: 10px 12px 12px; min-height:0; overflow:auto; flex:1; }
+.card-body, .body, .overlay-body { padding: 5px 8px; min-height:0; overflow:auto; flex:1; }
 .gui-body { position: relative; }
 .gui-close-btn {
   position: absolute;
@@ -231,7 +231,7 @@ button:active { transform: translateY(1px); }
 .mud-action.primary { background:#152132; border-color: var(--primary); }
 .mud-action.primary { background: linear-gradient(180deg, #352416, #24170f); border-color: rgba(230,191,107,0.8); color: #ffe7bf; }
 
-/* ✅ 默认隐藏 caption */
+/*  默认隐藏 caption */
 .command-btn .caption {
   display: none;
 }
@@ -486,4 +486,4 @@ button:active { transform: translateY(1px); }
   background: #1a1a1a;
 }
 
-/* ✅ PC 输入框样式 */
+/*  PC 输入框样式 */

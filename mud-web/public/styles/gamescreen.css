@@ -1,5 +1,32 @@
 /* GameScreen 组件样式 */
 
+/*  全局滚动条样式 - 细窄、半透明 */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(139, 111, 71, 0.5); /* 半透明棕色 */
+  border-radius: 2px;
+  transition: background 0.2s;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 111, 71, 0.8); /* 悬停时更不透明 */
+}
+
+/* Firefox 滚动条样式 */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(139, 111, 71, 0.5) rgba(0, 0, 0, 0.2);
+}
+
 /* PC端MUD游戏界面 */
 .mud-pc-screen {
   display: flex !important;
@@ -14,7 +41,7 @@
   z-index: 9999 !important;
 }
 
-/* ✅ PC布局：左侧边栏紧贴顶部、故事区左侧、主信息区左侧 */
+/*  PC布局：左侧边栏紧贴顶部、故事区左侧、主信息区左侧 */
 .pc-left-sidebar {
   width: 180px;
   min-width: 160px;
@@ -26,7 +53,7 @@
   overflow-y: auto;
 }
 
-/* ✅ 左侧对象列表 - 添加滚动条，溢出隐藏 */
+/*  左侧对象列表 - 溢出隐藏 */
 .pc-objects-section {
   display: flex;
   flex-direction: column;
@@ -37,22 +64,13 @@
   max-height: calc(50vh - 100px);
 }
 
-.pc-objects-section::-webkit-scrollbar {
-  width: 4px;
-}
-
-.pc-objects-section::-webkit-scrollbar-thumb {
-  background: #555;
-  border-radius: 2px;
-}
-
-/* ✅ 左下角区域 - 紧贴 pc-top-bar 底部 */
+/*  左下角区域 - 紧贴 pc-top-bar 底部 */
 .pc-left-bottom {
   margin-top: auto;
   padding-top: 10px;
 }
 
-/* ✅ 其他出口区域 - 添加滚动条，溢出隐藏 */
+/*  其他出口区域 - 添加滚动条，溢出隐藏 */
 .custom-exits-section {
   display: flex;
   flex-direction: column;
@@ -61,15 +79,6 @@
   border-radius: 4px;
   overflow-y: auto;
   max-height: 200px;
-}
-
-.custom-exits-section::-webkit-scrollbar {
-  width: 4px;
-}
-
-.custom-exits-section::-webkit-scrollbar-thumb {
-  background: #555;
-  border-radius: 2px;
 }
 
 .section-header {
@@ -119,7 +128,7 @@
   transition: width 0.3s ease;
 }
 
-/* ✅ PC布局：中间区域占据剩余空间，不留白 */
+/*  PC布局：中间区域占据剩余空间，不留白 */
 .pc-center-area {
   flex: 1;
   display: flex;
@@ -147,8 +156,7 @@
   padding: 8px;
   overflow-y: auto;
   display: flex;
-  flex-direction: column;
-  flex-shrink: 0;
+
 }
 
 /* 右侧内容区（故事描述区 + 主信息区） */
@@ -179,7 +187,7 @@
   flex: 0 0 auto;
 }
 
-/* ✅ 快捷菜单按钮容器 - 添加滚动条，溢出隐藏 */
+/*  快捷菜单按钮容器 - 添加滚动条，溢出隐藏 */
 .pc-dialog-btns {
   display: flex;
   gap: 4px;
@@ -308,21 +316,21 @@
 .pc-feed-content {
   flex: 1;
   overflow-y: auto;
-  padding: 8px 10px;
+  padding: 8px;
   color: #ddbb99;
   font-size: 13px;
   line-height: 1.6;
   background: rgba(26, 21, 16, 0.5);
 }
 
-/* ✅ PC模式：底部命令输入框紧贴屏幕底部 */
+/*  PC模式：底部命令输入框紧贴屏幕底部 */
 .pc-bottom-command {
   background: rgba(30, 25, 20, 0.95);
   border-top: 2px solid #666;
   padding: 8px;
 }
 
-/* ✅ PC布局：右侧面板紧贴，不留白 */
+/*  PC布局：右侧面板紧贴，不留白 */
 .pc-right-panel {
   width: 300px;
   min-width: 260px;
@@ -701,6 +709,25 @@
   transform: scale(0.98);
 }
 
+/* PC模式：隐藏Mobile专用的顶部聊天区域 */
+.pc-chat-section-mobile-top {
+  display: none !important;
+}
+
+/* PC模式：隐藏Mobile专用的底部出口按钮 */
+.pc-right-bottom-mobile {
+  display: none !important;
+}
+
+/* PC模式：隐藏Mobile专用的状态条 */
+.status-bars-mobile {
+  display: none !important;
+}
+
+/* PC模式：隐藏Mobile模式的命令按钮 */
+.mobile-command-btn-wrapper {
+  display: none !important;
+}
 
 .mobile-command-trigger {
   display: none;
@@ -718,7 +745,7 @@
   }
 }
 
-/* ✅ Mobile模式响应式布局 */
+/*  Mobile模式响应式布局 */
 @media (max-width: 768px) {
   .mud-pc-screen {
     flex-direction: column;
@@ -726,30 +753,72 @@
     overflow: hidden;
   }
   
-  /* ✅ 1. pc-chat-section 在整个界面最顶部 */
+  /*  Mobile模式：隐藏PC模式的聊天区域 */
+  .pc-chat-pc-only,
   .pc-chat-section {
-    order: -1;
+    display: none !important;
+  }
+  
+  /* Mobile模式：隐藏PC版本的状态条 */
+  .status-bars-pc-only {
+    display: none !important;
+  }
+  
+  /* Mobile模式：显示Mobile版本的状态条 */
+  .status-bars-mobile {
+    display: block !important;
+  }
+  
+  /*  Mobile模式：显示顶部的聊天区域 */
+  .pc-chat-section-mobile-top {
+    display: flex !important;
+    flex-direction: column;
     width: 100%;
     height: 100px;
     min-height: 100px;
     max-height: 100px;
-    border: none;
     background: #221505;
-    flex-shrink: 0;
     border-bottom: 1px solid #666;
+    flex-shrink: 0;
+    overflow-y: auto;
+    order: -1;
   }
   
-  .pc-chat-header-mini {
-    display: none;
-  }
-  
-  .pc-chat-content-mini {
-    height: 100px;
-    max-height: 100px;
-    border: none;
-    background: #221505;
+  .pc-chat-section-mobile-top .pc-chat-content-mini {
+    height: 100%;
     padding: 8px;
     color: #666;
+    overflow-y: auto;
+    flex: 1;
+  }
+  
+  /* Mobile模式：命令按钮样式 */
+  .mobile-command-btn-wrapper {
+    margin-top: 4px;
+    padding: 0;
+  }
+  
+  .mobile-command-btn {
+    background: linear-gradient(180deg, #3a2718, #24170e);
+    border: 1px solid #e6bf6b;
+    border-radius: 4px;
+    color: #ffe7bf;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+    padding: 8px 4px;
+    min-height: 36px;
+  }
+  
+  .mobile-command-btn:hover {
+    background: linear-gradient(180deg, #4a3728, #34271e);
+    border-color: #ffd700;
+  }
+  
+  .mobile-command-btn:active {
+    transform: scale(0.98);
   }
   
   /* 隐藏聊天输入框 */
@@ -758,7 +827,7 @@
     display: none;
   }
   
-  /* ✅ 2. pc-center-area 在聊天区域下方 */
+  /*  2. pc-center-area 在聊天区域下方 */
   .pc-center-area {
     flex: 1;
     display: flex;
@@ -767,7 +836,7 @@
     overflow: hidden;
   }
   
-  /* ✅ 内容包装器 */
+  /*  内容包装器 */
   .pc-content-wrapper {
     flex: 1;
     display: flex;
@@ -776,13 +845,13 @@
     overflow: hidden;
   }
   
-  /* ✅ 3. pc-left-sidebar 在 pc-top-bar 下面、pc-story-area 左面、pc-main-feed 左面 */
+  /*  3. pc-left-sidebar 在 pc-top-bar 下面、pc-story-area 左面、pc-main-feed 左面 */
   .pc-left-sidebar {
     position: relative;
     left: auto;
     top: auto;
     bottom: auto;
-    width: 50px;
+    width: 70px;
     min-width: 50px;
     border-right: 1px solid #666;
     background: #221505;
@@ -793,7 +862,7 @@
     flex-shrink: 0;
   }
   
-  /* ✅ pc-objects-section padding 改为 0 */
+  /*  pc-objects-section padding 改为 0 */
   .pc-objects-section {
     padding: 0;
     display: flex;
@@ -821,13 +890,16 @@
   .pc-left-bottom {
     margin-top: auto;
     padding-top: 4px;
+    display: block !important; /* 确保在Mobile模式下显示 */
+    width: 100%; /* 确保占满宽度 */
   }
   
   .custom-exits-section {
     padding: 0;
+    margin-bottom: 8px; /* 与底部元素保持间距 */
   }
   
-  /* ✅ 4. pc-left-main（主内容区） */
+  /*  4. pc-left-main（主内容区） */
   .pc-left-main {
     flex: 1;
     display: flex;
@@ -849,7 +921,7 @@
     flex-shrink: 0;
   }
   
-  /* ✅ 5. pc-main-feed 一直延伸到 pc-right-bottom 为止 */
+  /*  5. pc-main-feed 一直延伸到 pc-right-bottom 为止 */
   .pc-main-feed {
     flex: 1;
     display: flex;
@@ -873,12 +945,17 @@
     display: none;
   }
   
-  /* ✅ 6. pc-right-bottom 紧贴 status-bars-container */
+  /*  6. pc-right-bottom PC模式 */
   .pc-right-panel {
     display: none;
   }
   
-  .pc-right-bottom {
+  .pc-right-bottom-pc-only {
+    display: none;
+  }
+  
+  /* Mobile模式：显示底部出口按钮（正常流式布局） */
+  .pc-right-bottom-mobile {
     position: relative;
     margin: 0;
     padding: 8px;
@@ -886,20 +963,59 @@
     border: none;
     border-top: 1px solid #666;
     flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  /* Mobile模式：命令按钮（左侧） */
+  .mobile-command-btn-inline {
+    background: linear-gradient(180deg, #3a2718, #24170e);
+    border: 1px solid #e6bf6b;
+    border-radius: 3px;
+    color: #ffe7bf;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    padding: 6px 12px;
+    min-height: 32px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  
+  .mobile-command-btn-inline:hover {
+    background: linear-gradient(180deg, #4a3728, #34271e);
+    border-color: #ffd700;
+  }
+  
+  .mobile-command-btn-inline:active {
+    transform: scale(0.98);
+  }
+  
+  /* Mobile模式：出口按钮容器（右侧） */
+  .exit-buttons-container-mobile {
+    flex: 1;
+    display: flex;
+    justify-content: center;
   }
   
   .pc-custom-cmds {
     margin: 0;
     padding: 0;
     border: none;
+    width: 100%;
+    max-width: 300px; /* 限制整体宽度，让按钮更紧凑 */
+    margin-left: auto;
+    margin-right: auto;
   }
   
-  /* 三行三列布局 */
+  /* 三行六列布局 */
   .pc-custom-cmd-row {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 6px;
-    margin-bottom: 6px;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 2px;
+    margin-bottom: 2px;
   }
   
   .pc-custom-cmd-row:last-child {
@@ -907,32 +1023,50 @@
   }
   
   .pc-custom-cmd-btn {
-    font-size: 14px;
-    padding: 14px 8px;
-    min-height: 50px;
-    border-radius: 4px;
+    font-size: 9px;
+    padding: 2px 1px;
+    width: 100%;
+    height: 32px; /* 固定高度，保持正方形 */
+    aspect-ratio: 1 / 1; /* 保持正方形 */
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   
   .pc-custom-toggle-btn {
-    font-size: 14px;
-    padding: 14px 8px;
-    min-height: 50px;
+    font-size: 9px;
+    padding: 2px 1px;
+    width: 100%;
+    height: 32px; /* 固定高度，保持正方形 */
+    aspect-ratio: 1 / 1; /* 保持正方形 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   
   .pc-custom-cmd-placeholder {
     display: none;
   }
   
-  /* ✅ 7. status-bars-container 固定在屏幕最底部 */
-  .status-bars-container {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 200;
+  /*  7. status-bars-container Mobile模式（正常流式布局） */
+  .status-bars-mobile {
+    position: relative;
     background: #221505;
     border-top: 1px solid #666;
     padding: 4px;
+    flex-shrink: 0;
+  }
+  
+  /* Mobile模式：降低状态条高度 */
+  .status-bars-mobile .attrbar {
+    height: 20px !important;
+    min-height: 20px !important;
+  }
+  
+  .status-bars-mobile .attrbar-text {
+    font-size: 11px !important;
+    line-height: 20px !important;
   }
   
   /* 隐藏移动命令触发按钮 */
@@ -940,7 +1074,6 @@
     display: none;
   }
   
-  /* ✅ 圆形半透明命令输入弹窗 */
   .mobile-command-overlay {
     position: fixed;
     inset: 0;
@@ -1029,6 +1162,51 @@
     font-size: 14px;
     font-weight: 700;
     cursor: pointer;
+  }
+  
+  /* 出口按钮容器 */
+  .exit-buttons-container {
+    width: 100%;
+    padding: 2px;
+  }
+  
+  .exits-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+    width: 100%;
+    max-width: 180px; /* 限制整体宽度，让按钮更紧凑 */
+    margin: 0 auto; /* 居中显示 */
+  }
+  
+  .exit-btn {
+    background: linear-gradient(180deg, #3a2718, #24170e);
+    border: 1px solid #e6bf6b;
+    border-radius: 2px;
+    color: #ffe7bf;
+    font-size: 9px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    padding: 4px 2px;
+    width: 100%;
+    height: 28px; /* 固定高度，保持长方形 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .exit-btn:hover {
+    background: linear-gradient(180deg, #4a3728, #34271e);
+    border-color: #ffd700;
+  }
+  
+  .exit-btn:active {
+    transform: scale(0.98);
+  }
+  
+  .exit-placeholder {
+    visibility: hidden;
   }
   
   .pc-cmd-grid {

@@ -598,7 +598,7 @@ const mudAppOptions = {
           return false;
         });
         
-        // ✅ 合并：自定义的 b1-b11 + 保留的 b12-b17
+        //  合并：自定义的 b1-b11 + 保留的 b12-b17
         this.customCmds = [...customB1toB11, ...row3];
       }
     },
@@ -1021,7 +1021,7 @@ const mudAppOptions = {
             labelHtml: item.labelHtml || item.html || ''
           }));
           
-          // ✅ 空响应保护：如果解析结果为空，不更新数据
+          //  空响应保护：如果解析结果为空，不更新数据
           if (!newItems || newItems.length === 0) {
             return;
           }
@@ -1054,7 +1054,7 @@ const mudAppOptions = {
           } else {
             // 服务器发送了完整的按钮列表（包含 b1-b11）
             if (this.customEditMode) {
-              // ✅ 退出自定义模式
+              //  退出自定义模式
               this.customEditMode = false;
               
               // 检查新数据中是否包含 b12-b17
@@ -1106,7 +1106,7 @@ const mudAppOptions = {
           if (this.actionBlocks && this.actionBlocks.length > 0) {
             const processedPayload = payload.replace(/\$br#/g, '\n');
             this.actionBlocks[0].guiHtml = renderMudText(processedPayload, createAnsiState(), { mode: 'dark' });
-            // ✅ 不要修改 kind，保持原有的 001 类型
+            //  不要修改 kind，保持原有的 001 类型
           } else {
             // 否则使用原有的 GUI 弹窗逻辑
             this.showGui = true;
@@ -1126,7 +1126,7 @@ const mudAppOptions = {
           if (this.actionBlocks && this.actionBlocks.length > 0) {
             this.actionBlocks[0].guiActions1 = parsed.items;
             this.actionBlocks[0].guiColumns = parsed.columns || 3;
-            // ✅ 不要修改 kind，保持原有的 001 类型
+            //  不要修改 kind，保持原有的 001 类型
           } else {
             // 否则使用原有的 GUI 弹窗逻辑
             this.showGui = true;

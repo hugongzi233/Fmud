@@ -123,7 +123,7 @@ export default {
     const mud = inject('mud');
     const textInputValue = ref('');
     
-    // ✅ 如果 mud 未定义，提供默认的空对象以避免模板错误
+    //  如果 mud 未定义，提供默认的空对象以避免模板错误
     const safeMud = mud || {
       showGui: false,
       actionBlocks: [],
@@ -175,7 +175,7 @@ export default {
       if (item.cmd) {
         safeMud.sendCommand(item.cmd);
       }
-      // ✅ 点击 GUI 弹窗中的按钮后关闭弹窗
+      //  点击 GUI 弹窗中的按钮后关闭弹窗
       safeMud.closeGui();
     };
     

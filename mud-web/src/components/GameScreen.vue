@@ -1,5 +1,10 @@
   <template>
   <div class="mud-pc-screen" v-if="mud && mud.screen !== 'home'">
+    <!--  Mobile模式：聊天区域在最顶部 -->
+    <div class="pc-chat-section-mobile-top">
+      <div class="pc-chat-content-mini" ref="chatFeedMiniMobile" v-html="mud.allChatHtml || '<div style=\'color:#666;text-align:center;padding:20px;\'>暂无聊天消息</div>'"></div>
+    </div>
+
     <!-- 中间主信息区 -->
     <div class="pc-center-area">
       <!-- 顶部标题栏 -->
@@ -45,6 +50,12 @@
                 <span v-html="exit.labelHtml"></span>
               </button>
             </div>
+            <!-- Mobile模式：命令按钮 -->
+            <div class="mobile-command-btn-wrapper" v-show="customExits.length === 0">
+              <button class="obj-btn mobile-command-btn" @click="showMobileCommandInput = true">
+                <span>命令</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -77,21 +88,21 @@
 
     <!-- 右侧面板 -->
     <div class="pc-right-panel">
-      <!-- 聊天区域 -->
-      <div class="pc-chat-section">
+      <!-- 聊天区域（PC模式显示） -->
+      <div class="pc-chat-section pc-chat-pc-only">
         <div class="pc-chat-header-mini">
           <span>聊天</span>
           <button class="pc-chat-expand-btn" @click="mud.toggleChatRoom" title="打开完整聊天室">⤢</button>
         </div>
-        <div class="pc-chat-content-mini" ref="chatFeedMini" v-html="mud.allChatHtml || '<div style=\'color:#666;text-align:center;padding:20px;\'>暂无聊天消息</div>'"></div>
+        <div class="pc-chat-content-mini" ref="chatFeedMiniPc" v-html="mud.allChatHtml || '<div style=\'color:#666;text-align:center;padding:20px;\'>暂无聊天消息</div>'"></div>
         <ChatInput />
       </div>
       
       <!-- 状态条区域（移到聊天下面） -->
-      <StatusBars />
+      <StatusBars class="status-bars-pc-only" />
       
       <!-- 右下角：九宫格出口按钮 + 自定义命令 -->
-      <div class="pc-right-bottom">
+      <div class="pc-right-bottom pc-right-bottom-pc-only">
         <ExitButtons />
         
         <!-- 自定义命令按钮（006消息） -->
@@ -150,10 +161,80 @@
       </div>
     </div>
 
-    <!-- ✅ 小屏幕命令触发按钮 -->
+    <!-- Mobile模式：底部出口按钮和自定义命令 -->
+    <div class="pc-right-bottom pc-right-bottom-mobile">
+      <!-- 命令按钮（左侧） -->
+      <button class="mobile-command-btn-inline" @click="showMobileCommandInput = true">
+        <span>命令</span>
+      </button>
+      
+      <!-- 出口按钮（右侧） -->
+      <div class="exit-buttons-container-mobile">
+        <ExitButtons />
+      </div>
+      
+      <!-- 自定义命令按钮（006消息） -->
+      <div class="pc-custom-cmds" v-if="mud.customCmds && mud.customCmds.length > 0">
+        <!-- 第一行：b1-b5 + 第6个"自定"/"关闭"按钮 -->
+        <div class="pc-custom-cmd-row">
+          <button 
+            class="pc-custom-cmd-btn" 
+            v-for="(cmd, idx) in customCmdsRow1" 
+            :key="cmd.key" 
+            @click="handleCustomCmdClick(cmd, idx + 1)"
+            @contextmenu.prevent="handleCustomCmdLongPress($event, cmd, idx + 1)"
+          >
+            <span v-html="cmd.labelHtml || cmd.label"></span>
+          </button>
+          <!-- 填充空位以保持布局 -->
+          <div class="pc-custom-cmd-placeholder" v-for="n in (5 - customCmdsRow1.length)" :key="'empty1-' + n"></div>
+          <!-- 第一行第6个按钮：自定/关闭 -->
+          <button 
+            class="pc-custom-cmd-btn pc-custom-toggle-btn"
+            @click="mud.toggleCustomEditMode()"
+          >
+            {{ mud.customEditMode ? '关闭' : '自定' }}
+          </button>
+        </div>
+        
+        <!-- 第二行：b6-b11 (最多6个按钮) -->
+        <div class="pc-custom-cmd-row">
+          <button 
+            class="pc-custom-cmd-btn" 
+            v-for="(cmd, idx) in customCmdsRow2" 
+            :key="cmd.key" 
+            @click="handleCustomCmdClick(cmd, idx + 6)"
+            @contextmenu.prevent="handleCustomCmdLongPress($event, cmd, idx + 6)"
+          >
+            <span v-html="cmd.labelHtml || cmd.label"></span>
+          </button>
+          <!-- 填充空位以保持6列布局 -->
+          <div class="pc-custom-cmd-placeholder" v-for="n in (6 - customCmdsRow2.length)" :key="'empty2-' + n"></div>
+        </div>
+        
+        <!-- 第三行：b12-b17 (固定6个按钮) -->
+        <div class="pc-custom-cmd-row">
+          <button 
+            class="pc-custom-cmd-btn" 
+            v-for="cmd in customCmdsRow3" 
+            :key="cmd.key" 
+            @click="mud.sendCommand(cmd.cmd)"
+          >
+            <span v-html="cmd.labelHtml || cmd.label"></span>
+          </button>
+          <!-- 填充空位以保持6列布局 -->
+          <div class="pc-custom-cmd-placeholder" v-for="n in (6 - customCmdsRow3.length)" :key="'empty3-' + n"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile模式：底部状态条 -->
+    <StatusBars class="status-bars-mobile" />
+
+    <!--  小屏幕命令触发按钮 -->
     <button class="mobile-command-trigger" @click="openMobileCommandInput">⌨</button>
 
-    <!-- ✅ 小屏幕命令输入弹窗 -->
+    <!--  小屏幕命令输入弹窗 -->
     <div class="mobile-command-overlay" v-if="showMobileCommandInput" @click="closeMobileCommandInput">
       <div class="mobile-command-dialog" @click.stop>
         <div class="mobile-command-header">
@@ -222,13 +303,14 @@ import StatusBars from './StatusBars.vue';
 
 const mud = inject('mud');
 
-// ✅ 移动命令输入相关状态
+//  移动命令输入相关状态
 const showMobileCommandInput = ref(false);
 const mobileCommandText = ref('');
 
 // 消息容器的 ref
 const leftFeed = ref(null);
-const chatFeedMini = ref(null);
+const chatFeedMini = ref(null); // PC模式
+const chatFeedMiniMobile = ref(null); // Mobile模式
 
 // 最大行数限制
 const MAX_LINES = 5000;
@@ -263,9 +345,26 @@ watch(() => mud.activeFeedHtml, () => {
 
 // 监听聊天消息变化，自动滚动到底部
 watch(() => mud.allChatHtml, () => {
+  // Mobile模式滚动顶部聊天区域
+  scrollToBottom(chatFeedMiniMobile.value);
+  // PC模式滚动右侧聊天区域
   scrollToBottom(chatFeedMini.value);
   
-  // 限制最大行数
+  // 限制最大行数（Mobile模式）
+  if (chatFeedMiniMobile.value) {
+    const lines = chatFeedMiniMobile.value.querySelectorAll('.line');
+    if (lines.length > MAX_LINES) {
+      // 移除多余的行（从顶部开始移除）
+      const excessCount = lines.length - MAX_LINES;
+      for (let i = 0; i < excessCount; i++) {
+        if (lines[i]) {
+          lines[i].remove();
+        }
+      }
+    }
+  }
+  
+  // 限制最大行数（PC模式）
   if (chatFeedMini.value) {
     const lines = chatFeedMini.value.querySelectorAll('.line');
     if (lines.length > MAX_LINES) {
@@ -445,7 +544,7 @@ const handleGlobalClick = (event) => {
   }
 };
 
-// ✅ 移动命令输入相关方法
+//  移动命令输入相关方法
 const openMobileCommandInput = () => {
   showMobileCommandInput.value = true;
   mobileCommandText.value = '';
