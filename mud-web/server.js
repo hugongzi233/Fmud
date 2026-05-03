@@ -6,6 +6,7 @@ const net = require('net');
 const { URL } = require('url');
 const WebSocket = require('ws');
 const iconv = require('iconv-lite');
+const crypto = require('crypto');
 
 const ROOT = __dirname;
 const PUBLIC_DIR = path.join(ROOT, 'public');
@@ -149,7 +150,9 @@ const server = http.createServer(async (req, res) => {
     const pass = body.pass || '';
     const phone = body.phone || '';
     const email = body.email || '';
-    const key = body.key || `${id}${pass}${phone}AP4s3dF5`;
+    // 计算 MD5 key（与安卓客户端一致）
+    const keyMessage = id + pass + phone + 'AP4s3dF5';
+    const key = crypto.createHash('md5').update(keyMessage).digest('hex');
     proxyText(res, `${REMOTE_BASE}/reg.php?id=${encodeURIComponent(id)}&pass=${encodeURIComponent(pass)}&phone=${encodeURIComponent(phone)}&email=${encodeURIComponent(email)}&key=${encodeURIComponent(key)}`);
     return;
   }

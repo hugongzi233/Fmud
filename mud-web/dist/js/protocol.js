@@ -268,6 +268,22 @@ export function parseActionItems(raw, defaultColumns = 2) {
       if (lastColon !== -1) {
         labelRaw = working.slice(0, lastColon).trim();
         cmdPrefix = working.slice(lastColon + 1).trim();
+        
+        // 如果 cmdPrefix 以 ESC 控制码开头（如 \u001b020），需要提取实际的命令文本
+        // 格式：\u001b020action|command 或 000020action|command
+        if (cmdPrefix.startsWith('\u001b')) {
+          const controlCode = cmdPrefix.slice(1, 4);
+          // 对于 020 类型的控制码，提取后面的 payload
+          if (controlCode === '020') {
+            cmdPrefix = cmdPrefix.slice(4).trim();
+          }
+        } else if (/^0{3,}\d{3}/.test(cmdPrefix)) {
+          // 处理零前缀格式：000020...
+          const match = cmdPrefix.match(/^0{3,}(\d{3})/);
+          if (match && match[1] === '020') {
+            cmdPrefix = cmdPrefix.slice(match[0].length).trim();
+          }
+        }
       } else {
         // 没有冒号，整个作为label
         labelRaw = working;

@@ -757,10 +757,10 @@ const mudAppOptions = {
               return;
             }
             const code = rest.slice(1, 4);
-                        // 对于012状态栏和006自定义命令，直接消费到末尾
+                        // 对于012状态栏、006自定义命令、007/008/009 GUI消息，直接消费到末尾
             let consumeLength = rest.length;
             
-            if (code === '012' || code === '006') {
+            if (code === '012' || code === '006' || code === '007' || code === '008' || code === '009') {
               // 这些消息包含大量ANSI颜色代码，直接消费到末尾
               consumeLength = rest.length;
             } else {

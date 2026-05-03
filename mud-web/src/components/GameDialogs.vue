@@ -7,14 +7,14 @@
                 <div class="overlay-body gui-body">
                     <div class="gui-content" v-if="safeMud.guiHtml" v-html="safeMud.guiHtml"></div>
                     <div class="gui-actions" v-if="safeMud.guiActions1.length || safeMud.guiActions2.length" style="display: flex; flex-direction: column; gap: 10px; max-width: 800px; width: 100%;">
-                        <div class="action-section" v-if="safeMud.guiActions1.length" :style="{ display: 'grid', gridTemplateColumns: `repeat(${safeMud.guiColumns || 3}, minmax(140px, 1fr))`, gap: '10px' }">
+                        <div class="action-section" v-if="safeMud.guiActions1.length" :style="{ display: 'grid', gridTemplateColumns: `repeat(${safeMud.guiColumns || 3}, minmax(10px, 1fr))`, gap: '10px' }">
                             <button class="command-btn" v-for="item in safeMud.guiActions1" :key="item.key" @click="handleGuiActionClick(item)">
                                 <div v-html="item.labelHtml"></div>
                                 <div class="caption" v-if="item.captionHtml" v-html="item.captionHtml"></div>
                                 <div class="caption" v-else>{{ item.caption || item.cmd }}</div>
                             </button>
                         </div>
-                        <div class="action-section" v-if="safeMud.guiActions2.length" :style="{ display: 'grid', gridTemplateColumns: `repeat(${safeMud.guiColumns || 3}, minmax(140px, 1fr))`, gap: '10px' }">
+                        <div class="action-section" v-if="safeMud.guiActions2.length" :style="{ display: 'grid', gridTemplateColumns: `repeat(${safeMud.guiColumns || 3}, minmax(10px, 1fr))`, gap: '10px' }">
                             <button class="command-btn" v-for="item in safeMud.guiActions2" :key="item.key" @click="handleGuiActionClick(item)">
                                 <div v-html="item.labelHtml"></div>
                                 <div class="caption" v-if="item.captionHtml" v-html="item.captionHtml"></div>

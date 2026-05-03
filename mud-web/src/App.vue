@@ -36,3 +36,6 @@ export default {
   ...mudAppOptions
 };
 </script>
+
+<style scoped>
+</style>
