@@ -106,7 +106,6 @@ const mudAppOptions = {
       chatInputText: '',  // 聊天输入框文本
       commandInputText: '',  // 命令输入框文本
       showEmoji: false,
-      emojiList: ['😀', '😄', '😎', '🔥', '✨', '🎯', '👍', '👋'],
       feedTab: 'main',
       feed: { main: [], chat: [], fight: [], system: [] },
       actionBlocks: [],
@@ -663,11 +662,64 @@ const mudAppOptions = {
         }
         return;
       }
+      
+      // 处理编码检测通知
+      if (message.type === 'encoding_detect') {
+        this.handleEncodingDetection(message);
+        return;
+      }
+      
+      // 处理编码切换确认
+      if (message.type === 'encoding_switched') {
+        this.handleEncodingSwitched(message);
+        return;
+      }
+      
       if (message.type === 'data') {
         const textToProcess = String(message.text || '');
         this.processIncomingText(textToProcess);
       }
     },
+    
+    // 处理编码检测通知
+    handleEncodingDetection(message) {
+      const { detected, current, suggestion } = message;
+      
+      // 如果检测到不同的编码，且当前是登录阶段（还未收到版本验证成功）
+      if (detected !== current && !this.gameState.versionChecked) {
+        console.log(`[自动检测] 建议使用编码: ${suggestion} (当前: ${current}, 检测到: ${detected})`);
+        
+        // 自动切换到建议的编码
+        this.wsEncoding = suggestion;
+        
+        // 通知服务端切换编码并重发登录信息
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+          this.ws.send(JSON.stringify({ 
+            action: 'switch_encoding', 
+            encoding: suggestion 
+          }));
+          
+          this.pushSystem(`检测到编码不匹配，自动切换到 ${suggestion} 并重试...`);
+        }
+      }
+    },
+    
+    // 处理编码切换完成
+    handleEncodingSwitched(message) {
+      const { from, to, resent } = message;
+      
+      if (resent) {
+        this.pushSystem(`已切换到 ${to} 编码并重新发送登录信息`);
+        // 更新当前服务器的编码设置
+        if (this.activeServer) {
+          this.activeServer.encoding = to;
+          this.persist();
+        }
+      } else {
+        this.pushSystem(`编码已从 ${from} 切换到 ${to}`);
+      }
+    },
+    
     processIncomingText(text) {
       if (!text) return;
       // if previous incoming indicated a marker-only control (e.g. a line with only 0000007),

@@ -21,7 +21,7 @@ function detectDecode(buf, preferred = 'utf8') {
     const s = iconv.decode(buf, preferred);
     if (s.indexOf('\uFFFD') === -1) return { text: s, encoding: preferred };
   } catch (e) {}
-  const fallbacks = ['gb18030', 'gbk', 'latin1'];
+  const fallbacks = ['gbk', 'utf8', 'gb18030','gb2312'];
   for (const enc of fallbacks) {
     try {
       const s = iconv.decode(buf, enc);
@@ -221,6 +221,8 @@ const wss = new WebSocket.Server({ server });
 wss.on('connection', (ws) => {
   ws.tcp = null;
   ws.encoding = 'utf8';
+  ws.loginInfo = null; // 保存登录信息用于重发
+  ws.autoDetectEnabled = true; // 启用自动检测
 
   const closeTcp = () => {
     if (ws.tcp) {
@@ -242,6 +244,7 @@ wss.on('connection', (ws) => {
       const host = message.host || '127.0.0.1';
       const port = Number.parseInt(message.port, 10) || 23;
       ws.encoding = message.encoding || 'utf8';
+      ws.autoDetectEnabled = message.autoDetect !== false; // 默认启用自动检测
       const socket = new net.Socket();
       ws.tcp = socket;
       let pending = Buffer.alloc(0);
@@ -274,6 +277,35 @@ wss.on('connection', (ws) => {
           try {
             const detected = detectDecode(lineBuffer, ws.encoding);
             let text = detected.text.replace(/\r$/, '');
+            
+            // 自动检测编码：如果检测到编码与当前设置不同，且启用了自动检测
+            if (ws.autoDetectEnabled && detected.encoding !== ws.encoding && ws.loginInfo) {
+              // 检查是否包含常见的编码错误提示
+              const errorPatterns = [
+                '未知错误',
+                '请重试',
+                '编码错误',
+                'charset',
+                'encoding'
+              ];
+              
+              const hasErrorPattern = errorPatterns.some(pattern => 
+                text.toLowerCase().includes(pattern.toLowerCase())
+              );
+              
+              // 如果文本中包含替换字符（解码失败）或错误提示，尝试切换编码
+              const hasReplacementChar = text.includes('\uFFFD');
+              
+              if (hasErrorPattern || hasReplacementChar) {
+                // 通知前端需要切换编码
+                ws.send(JSON.stringify({ 
+                  type: 'encoding_detect', 
+                  detected: detected.encoding,
+                  current: ws.encoding,
+                  suggestion: detected.encoding !== 'utf8' ? detected.encoding : 'gbk'
+                }));
+              }
+            }
             
             ws.send(JSON.stringify({ type: 'data', text, raw: lineBuffer.toString('base64'), encoding: detected.encoding }));
           } catch (err) {
@@ -308,6 +340,12 @@ wss.on('connection', (ws) => {
     if (message.action === 'input') {
       if (!ws.tcp || ws.tcp.destroyed) return;
       const text = String(message.text || '');
+      
+      // 保存登录信息（如果包含账号密码格式）
+      if (text.includes('║') && ws.autoDetectEnabled) {
+        ws.loginInfo = { text, timestamp: Date.now() };
+      }
+      
       let buffer;
       try {
         buffer = iconv.encode(text, ws.encoding);
@@ -331,6 +369,43 @@ wss.on('connection', (ws) => {
         console.log(`[OUT -> ${ws.encoding}]`, decoded);
       } catch (e) { console.error('failed to write outLog', e.message); }
       ws.tcp.write(buffer);
+      return;
+    }
+
+    // 处理编码切换请求
+    if (message.action === 'switch_encoding') {
+      const newEncoding = message.encoding || 'utf8';
+      const oldEncoding = ws.encoding;
+      ws.encoding = newEncoding;
+      
+      // 如果有保存的登录信息，用新编码重新发送
+      if (ws.loginInfo && ws.tcp && !ws.tcp.destroyed) {
+        try {
+          const buffer = iconv.encode(ws.loginInfo.text, newEncoding);
+          ws.tcp.write(buffer);
+          ws.send(JSON.stringify({ 
+            type: 'encoding_switched', 
+            from: oldEncoding, 
+            to: newEncoding,
+            resent: true 
+          }));
+        } catch (e) {
+          ws.send(JSON.stringify({ 
+            type: 'encoding_switched', 
+            from: oldEncoding, 
+            to: newEncoding,
+            resent: false,
+            error: e.message 
+          }));
+        }
+      } else {
+        ws.send(JSON.stringify({ 
+          type: 'encoding_switched', 
+          from: oldEncoding, 
+          to: newEncoding,
+          resent: false 
+        }));
+      }
       return;
     }
 
