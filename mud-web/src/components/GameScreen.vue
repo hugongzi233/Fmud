@@ -125,7 +125,7 @@
               class="pc-custom-cmd-btn pc-custom-toggle-btn"
               @click="mud.toggleCustomEditMode()"
             >
-              {{ mud.customEditMode ? '关闭' : '自定' }}
+              自定
             </button>
           </div>
           
@@ -398,21 +398,7 @@ const customExits = computed(() => {
 const customCmdsRow1 = computed(() => {
   if (!mud.customCmds || mud.customCmds.length === 0) return [];
   
-  // 如果在编辑模式，返回空的"长按"按钮
-  if (mud.customEditMode) {
-    const buttons = [];
-    for (let i = 1; i <= 5; i++) {
-      buttons.push({
-        key: `b${i}-longpress`,
-        cmd: '',
-        label: '长按',
-        labelHtml: ''
-      });
-    }
-    return buttons;
-  }
-  
-  // 正常模式：过滤 b1-b5
+  // 自定义模式下也保持显示已保存按钮，便于直接点击；长按入口仍然可用
   return mud.customCmds.filter(cmd => {
     const match = cmd.key.match(/^b(\d+)-/);
     if (match) {
@@ -426,21 +412,7 @@ const customCmdsRow1 = computed(() => {
 const customCmdsRow2 = computed(() => {
   if (!mud.customCmds || mud.customCmds.length === 0) return [];
   
-  // 如果在编辑模式，返回空的"长按"按钮
-  if (mud.customEditMode) {
-    const buttons = [];
-    for (let i = 6; i <= 11; i++) {
-      buttons.push({
-        key: `b${i}-longpress`,
-        cmd: '',
-        label: '长按',
-        labelHtml: ''
-      });
-    }
-    return buttons;
-  }
-  
-  // 正常模式：过滤 b6-b11
+  // 自定义模式下也保持显示已保存按钮，便于直接点击；长按入口仍然可用
   return mud.customCmds.filter(cmd => {
     const match = cmd.key.match(/^b(\d+)-/);
     if (match) {

@@ -573,15 +573,10 @@ const mudAppOptions = {
           }
           return false;
         });
-        
-        if (this.lastCustomButtons && this.lastCustomButtons.length > 0) {
-          // 有上一次的数据，恢复 b1-b11
-          this.customCmds = [...this.lastCustomButtons, ...row3];
-        } else {
-          // 没有上一次的数据，b1-b11 显示为空按钮
-          const emptyB1toB11 = this.generateEmptyCustomButtons();
-          this.customCmds = [...emptyB1toB11, ...row3];
-        }
+
+        // 退出编辑模式时，直接按持久化结果重建 b1-b11，避免回退到旧快照
+        const customB1toB11 = this.loadCustomButtonsArray();
+        this.customCmds = [...customB1toB11, ...row3];
         
         this.lastCustomButtons = null;
       } else {
@@ -615,6 +610,16 @@ const mudAppOptions = {
       const saved = loadJSON(key, {});
       saved[`b${buttonIndex}`] = { label, cmd };
       saveJSON(key, saved);
+
+      if (this.lastCustomButtons && this.lastCustomButtons.length > 0) {
+        const updatedButtons = this.loadCustomButtonsArray();
+        this.lastCustomButtons = updatedButtons.filter(button => {
+          const match = button.key.match(/^b(\d+)-/);
+          if (!match) return false;
+          const num = parseInt(match[1]);
+          return num >= 1 && num <= 11;
+        });
+      }
       
       // ✅ 使用 splice 确保 Vue 响应式更新（即使索引不存在也会插入）
       this.customCmds.splice(buttonIndex - 1, 1, {
