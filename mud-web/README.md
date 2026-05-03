@@ -284,6 +284,127 @@ handleControlMessage(text) {
 
 ---
 
+## 构建优化
+
+本项目已集成以下代码保护和优化功能，以提升加载速度并增加逆向工程难度。
+
+### 1. **代码压缩 (Terser)**
+- ✅ 移除所有 `console.log` 和 `debugger` 语句
+- ✅ 移除代码注释
+- ✅ 变量名混淆缩短
+- ✅ 死代码消除
+- ✅ 表达式优化
+
+### 2. **代码混淆 (JavaScript Obfuscator)**
+- ✅ 字符串数组编码 - 将字符串转换为加密的数组访问
+- ✅ 控制流扁平化 - 打乱代码执行顺序,增加逆向难度
+- ✅ 死代码注入 - 插入无用的虚假代码逻辑
+- ✅ 十六进制标识符命名 - 变量名转为随机十六进制
+- ✅ 数字转表达式 - 将数字转换为复杂表达式
+- ✅ 字符串拆分 - 将长字符串拆分为多个片段
+
+### 3. **资源压缩**
+- ✅ **Gzip 压缩** (.gz) - 通用压缩格式,兼容性好
+- ✅ **Brotli 压缩** (.br) - 更高压缩率,现代浏览器支持
+- 📊 压缩效果示例:
+  - main.js: 54.20KB → 13.18KB (gzip) / 10.89KB (brotli)
+  - vue.js: 1086.58KB → 363.95KB (gzip) / 301.77KB (brotli)
+
+### 4. **代码分割优化**
+- ✅ Vue 框架单独分包
+- ✅ 第三方库单独分包
+- ✅ Hash 文件名支持浏览器缓存
+
+### 构建产物说明
+
+构建后的文件位于 `dist/` 目录:
+
+```
+dist/
+├── index.html                    # 主页面
+├── assets/                       # CSS 资源
+│   ├── *.css                     # 原始样式文件
+│   ├── *.css.gz                  # Gzip 压缩版本
+│   └── *.css.br                  # Brotli 压缩版本
+├── js/                           # JavaScript 文件
+│   ├── *.js                      # 混淆+压缩后的代码
+│   ├── *.js.gz                   # Gzip 压缩版本
+│   └── *.js.br                   # Brotli 压缩版本
+├── styles/                       # 额外样式文件
+├── fonts/                        # 字体文件
+└── imgs/                         # 图片资源
+```
+
+### 服务器配置建议
+
+#### Nginx 配置示例
+
+```nginx
+server {
+    listen 80;
+    server_name your-domain.com;
+    root /path/to/dist;
+    index index.html;
+
+    # 启用 Brotli 压缩 (优先)
+    brotli on;
+    brotli_comp_level 6;
+    brotli_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
+
+    # 启用 Gzip 压缩 (备选)
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
+
+    # 静态资源缓存
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|woff2)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # SPA 路由支持
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
+```
+
+#### Apache 配置示例
+
+在 `.htaccess` 文件中添加:
+
+```apache
+# 启用压缩
+AddOutputFilterByType DEFLATE text/html text/plain text/css application/javascript
+
+# 静态资源缓存
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css "access plus 1 year"
+    ExpiresByType application/javascript "access plus 1 year"
+    ExpiresByType image/png "access plus 1 year"
+</IfModule>
+```
+
+### 性能对比
+
+| 文件 | 原始大小 | Terser压缩 | +混淆 | +Gzip | +Brotli |
+|------|---------|-----------|-------|-------|---------|
+| main.js | ~150KB | ~54KB | ~332KB* | 13.18KB | 10.89KB |
+| vue.js | ~350KB | ~1112KB* | ~1112KB | 363.95KB | 301.77KB |
+
+*\*注: 混淆会增加代码体积(注入死代码、字符串展开等),但压缩后总体积仍然显著减小*
+
+### 注意事项
+
+1. **调试困难**: 混淆后的代码难以阅读和调试,建议在开发环境禁用混淆
+2. **性能影响**: 混淆会增加代码体积和执行时间,但对现代浏览器影响很小
+3. **Source Map**: 生产环境已禁用 source map,如需调试可临时开启
+4. **兼容性**: Brotli 需要现代浏览器支持,建议同时提供 Gzip 作为备选
+
+---
+
 ## UI布局设计
 
 
