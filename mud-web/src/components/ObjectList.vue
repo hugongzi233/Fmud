@@ -5,6 +5,10 @@
       <!-- <div class="section-header">当前场景</div> -->
       <button class="obj-btn" v-for="target in mud.targets" :key="target.key" @click="handleObjectClick(target)">
         <span v-html="target.labelHtml"></span>
+        <!-- 血条容器 -->
+        <div class="hp-bar-container" v-if="target.qiXue">
+          <div class="hp-bar-fill" :style="{ width: getHpPercent(target.qiXue) + '%' }"></div>
+        </div>
       </button>
     </div>
   </div>
@@ -14,6 +18,21 @@
 import { inject } from 'vue';
 
 const mud = inject('mud');
+
+// 计算血量百分比
+const getHpPercent = (qiXue) => {
+  if (!qiXue || typeof qiXue !== 'string') return 0;
+  
+  const parts = qiXue.split('/');
+  if (parts.length !== 2) return 0;
+  
+  const current = parseInt(parts[0], 10);
+  const max = parseInt(parts[1], 10);
+  
+  if (isNaN(current) || isNaN(max) || max <= 0) return 0;
+  
+  return Math.min(100, Math.max(0, (current / max) * 100));
+};
 
 // 处理对象点击
 const handleObjectClick = (target) => {
@@ -64,10 +83,31 @@ const handleObjectClick = (target) => {
   border-radius: 2px;
   text-align: center;
   min-height: 32px;
+  position: relative;
+  width: 100%;
+  display: block;
 }
 
 .obj-btn:hover {
   background: rgba(80, 70, 60, 0.8);
   border-color: #e6bf6b;
+}
+
+/* 血条容器 */
+.hp-bar-container {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+
+/* 血条填充 */
+.hp-bar-fill {
+  height: 100%;
+  background-color: #ff4500;
+  transition: width 0.3s ease;
 }
 </style>

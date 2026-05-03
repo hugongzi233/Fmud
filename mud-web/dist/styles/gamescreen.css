@@ -91,11 +91,32 @@
   border-radius: 2px;
   text-align: center;
   min-height: 32px;
+  position: relative;
+  width: 100%;
+  display: block;
 }
 
 .obj-btn:hover {
   background: rgba(80, 70, 60, 0.8);
   border-color: #e6bf6b;
+}
+
+/* 血条容器 */
+.hp-bar-container {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+
+/* 血条填充 */
+.hp-bar-fill {
+  height: 100%;
+  background-color: #ff4500;
+  transition: width 0.3s ease;
 }
 
 /* ✅ PC布局：中间区域占据剩余空间，不留白 */

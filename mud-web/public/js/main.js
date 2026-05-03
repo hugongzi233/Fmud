@@ -1280,11 +1280,12 @@ const mudAppOptions = {
             const item = this.targets[i];
             // 检查目标的cmd是否包含目标标识
             if (item.cmd && item.cmd.includes(targetId)) {
-              // 更新目标的气血显示
-              this.$set(this.targets, i, {
+              // 更新目标的气血显示 - 使用splice确保Vue 3响应式更新
+              const updatedItem = {
                 ...item,
                 qiXue: qiXueValue
-              });
+              };
+              this.targets.splice(i, 1, updatedItem);
               break;
             }
                      }
