@@ -442,7 +442,7 @@ const mudAppOptions = {
     loadCustomButtonsArray() {
       const key = this.getCustomButtonsKey();
       if (!key) {
-        // 没有有效的键，显示空按钮
+        // 没有有效的键，显示"长按"按钮
         return this.generateEmptyCustomButtons();
       }
       
@@ -460,31 +460,31 @@ const mudAppOptions = {
               labelHtml: renderMudText(saved[btnKey].label || '长按', createAnsiState(), { mode: this.settings.mode })
             });
           } else {
-            // 没有自定义的按钮，显示为空
+            // 没有自定义的按钮，显示"长按"
             buttons.push({
               key: `${btnKey}-empty`,
               cmd: '',
-              label: '',
-              labelHtml: ''
+              label: '长按',
+              labelHtml: renderMudText('长按', createAnsiState(), { mode: this.settings.mode })
             });
           }
         }
         return buttons;
       } else {
-        // 没有保存的数据，显示空按钮
+        // 没有保存的数据，显示"长按"按钮
         return this.generateEmptyCustomButtons();
       }
     },
     
-    // 生成空的自定义按钮数组
+    // 生成空的自定义按钮数组（显示"长按"）
     generateEmptyCustomButtons() {
       const buttons = [];
       for (let i = 1; i <= 11; i++) {
         buttons.push({
           key: `b${i}-empty`,
           cmd: '',
-          label: '',
-          labelHtml: ''
+          label: '长按',
+          labelHtml: renderMudText('长按', createAnsiState(), { mode: this.settings.mode })
         });
       }
       return buttons;
@@ -616,12 +616,13 @@ const mudAppOptions = {
       saved[`b${buttonIndex}`] = { label, cmd };
       saveJSON(key, saved);
       
-      // 更新当前显示的按钮
-      if (this.customCmds[buttonIndex - 1]) {
-        this.customCmds[buttonIndex - 1].label = label;
-        this.customCmds[buttonIndex - 1].cmd = cmd;
-        this.customCmds[buttonIndex - 1].labelHtml = renderMudText(label, createAnsiState(), { mode: this.settings.mode });
-      }
+      // ✅ 使用 splice 确保 Vue 响应式更新（即使索引不存在也会插入）
+      this.customCmds.splice(buttonIndex - 1, 1, {
+        key: `b${buttonIndex}-${label}`,
+        cmd: cmd,
+        label: label,
+        labelHtml: renderMudText(label, createAnsiState(), { mode: this.settings.mode })
+      });
       
       this.pushToast('快捷键已保存');
     },
@@ -1053,8 +1054,22 @@ const mudAppOptions = {
             this.customCmds = [...customB1toB11, ...newItems];
           } else {
             // 服务器发送了完整的按钮列表（包含 b1-b11）
+            
+            // ✅ 无论是否在自定义模式，都先保存服务器返回的 b1-b11
+            const serverB1toB11 = newItems.filter(item => {
+              const match = item.key.match(/^b(\d+)-/);
+              if (match) {
+                const num = parseInt(match[1]);
+                return num >= 1 && num <= 11;
+              }
+              return false;
+            });
+            if (serverB1toB11.length > 0) {
+              this.lastCustomButtons = serverB1toB11;
+            }
+            
             if (this.customEditMode) {
-              //  退出自定义模式
+              // ✅ 收到服务器按钮，自动退出自定义模式，显示服务器按钮
               this.customEditMode = false;
               
               // 检查新数据中是否包含 b12-b17
@@ -1078,17 +1093,41 @@ const mudAppOptions = {
                   return false;
                 });
                 
-                // 合并：服务器的 b1-b11 + 保留的 b12-b17
-                const merged = this.mergeCustomButtonsToArray(newItems);
-                this.customCmds = [...merged, ...oldRow3];
+                // ✅ 直接使用服务器按钮 + 保留的 b12-b17（不应用自定义覆盖）
+                this.customCmds = [...newItems, ...oldRow3];
               } else {
-                // 新数据中有 b12-b17，正常合并
-                this.lastCustomButtons = null;
-                this.mergeCustomButtons(newItems);
+                // ✅ 新数据中有 b12-b17，直接使用服务器按钮（不应用自定义覆盖）
+                this.customCmds = newItems;
               }
             } else {
-              // 正常模式：更新所有按钮，并合并自定义设置
-              this.mergeCustomButtons(newItems);
+              // ✅ 正常模式：直接使用服务器按钮（不应用自定义覆盖）
+              // 检查新数据中是否包含 b12-b17
+              const newRow3 = newItems.filter(item => {
+                const match = item.key.match(/^b(\d+)-/);
+                if (match) {
+                  const num = parseInt(match[1]);
+                  return num >= 12 && num <= 17;
+                }
+                return false;
+              });
+              
+              if (newRow3.length === 0) {
+                // 新数据中没有 b12-b17，保留之前的 b12-b17
+                const oldRow3 = this.customCmds.filter(cmd => {
+                  const match = cmd.key.match(/^b(\d+)-/);
+                  if (match) {
+                    const num = parseInt(match[1]);
+                    return num >= 12 && num <= 17;
+                  }
+                  return false;
+                });
+                
+                // 合并：服务器按钮 + 保留的 b12-b17
+                this.customCmds = [...newItems, ...oldRow3];
+              } else {
+                // 新数据中有 b12-b17，直接使用
+                this.customCmds = newItems;
+              }
             }
           }
           return;

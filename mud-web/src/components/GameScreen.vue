@@ -530,7 +530,7 @@ const handleCustomCmdLongPress = (event, cmd, buttonIndex) => {
     cols: 1,
     items: [{
       key: `edit-b${buttonIndex}`,
-      labelHtml: '<div style="margin-bottom:10px;">请输入快捷键名称和指令：</div>',
+      labelHtml: '<div style="margin-bottom:10px;">请输入快捷键名称+,+指令：</div>',
       cmdPrefix: 'CUSTOM_EDIT',
       customData: { buttonIndex, currentLabel: cmd.label || '', currentCmd: cmd.cmd || '' }
     }]
