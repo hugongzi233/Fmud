@@ -111,6 +111,19 @@
                 </div>
             </div>
         </div>
+
+        <!-- 地图弹窗（011 消息） -->
+        <div class="overlay" v-if="safeMud.showMap">
+            <div class="overlay-card map-card">
+                <button class="dialog-close-btn" @click="safeMud.closeMap">×</button>
+                <div class="overlay-header">
+                    <div class="card-title">地图</div>
+                </div>
+                <div class="overlay-body map-body">
+                    <div class="map-content" v-html="safeMud.mapHtml"></div>
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 

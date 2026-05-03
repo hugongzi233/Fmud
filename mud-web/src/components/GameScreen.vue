@@ -163,14 +163,17 @@
 
     <!-- Mobile模式：底部出口按钮和自定义命令 -->
     <div class="pc-right-bottom pc-right-bottom-mobile">
-      <!-- 命令按钮（左侧） -->
-      <button class="mobile-command-btn-inline" @click="showMobileCommandInput = true">
-        <span>命令</span>
-      </button>
-      
-      <!-- 出口按钮（右侧） -->
-      <div class="exit-buttons-container-mobile">
-        <ExitButtons />
+      <!-- 第一行：命令按钮 + 出口按钮 -->
+      <div class="pc-right-bottom-row-1">
+        <!-- 命令按钮（左侧） -->
+        <button class="mobile-command-btn-inline" @click="showMobileCommandInput = true">
+          <span>命令</span>
+        </button>
+        
+        <!-- 出口按钮（右侧） -->
+        <div class="exit-buttons-container-mobile">
+          <ExitButtons />
+        </div>
       </div>
       
       <!-- 自定义命令按钮（006消息） -->

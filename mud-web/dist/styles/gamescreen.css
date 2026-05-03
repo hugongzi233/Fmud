@@ -769,7 +769,7 @@
     display: block !important;
   }
   
-  /*  Mobile模式：显示顶部的聊天区域 */
+  /* Mobile模式：显示顶部的聊天区域 */
   .pc-chat-section-mobile-top {
     display: flex !important;
     flex-direction: column;
@@ -851,7 +851,7 @@
     left: auto;
     top: auto;
     bottom: auto;
-    width: 50px;
+    width: 70px;
     min-width: 50px;
     border-right: 1px solid #666;
     background: #221505;
@@ -954,18 +954,38 @@
     display: none;
   }
   
+  /* Mobile模式：覆盖pc-right-bottom的默认样式 */
+  .pc-right-bottom {
+    margin-top: 0 !important; /* 覆盖默认的margin-top: auto */
+  }
+  
   /* Mobile模式：显示底部出口按钮（正常流式布局） */
   .pc-right-bottom-mobile {
     position: relative;
-    margin: 0;
+    margin: 0 !important; /* 覆盖默认的margin-top: auto */
     padding: 8px;
     background: #221505;
     border: none;
     border-top: 1px solid #666;
     flex-shrink: 0;
+    display: flex !important; /* 确保显示 */
+    flex-direction: column; /* 垂直排列 */
+    gap: 8px;
+    width: 100%; /* 确保占满宽度 */
+  }
+  
+  /* 第一行：命令按钮 + 出口按钮 */
+  .pc-right-bottom-mobile > .mobile-command-btn-inline,
+  .pc-right-bottom-mobile > .exit-buttons-container-mobile {
+    align-self: stretch;
+  }
+  
+  /* 命令按钮和出口按钮的容器 */
+  .pc-right-bottom-row-1 {
     display: flex;
     align-items: center;
     gap: 8px;
+    width: 100%;
   }
   
   /* Mobile模式：命令按钮（左侧） */
@@ -1089,15 +1109,13 @@
     width: 100%;
     max-width: 300px;
     background: rgba(34, 21, 5, 0.9);
-    border: 2px solid #e6bf6b;
-    border-radius: 50%;
+    border: 1px solid #e6bf6b;
     overflow: hidden;
-    aspect-ratio: 1 / 1;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 30px;
+    padding: 10px;
   }
   
   .mobile-command-header {
@@ -1207,6 +1225,30 @@
   
   .exit-placeholder {
     visibility: hidden;
+  }
+  
+  /* ✅ 地图弹窗样式 */
+  .map-card {
+    max-width: 90vw;
+    max-height: 85vh;
+    width: auto;
+  }
+  
+  .map-body {
+    padding: 12px;
+    overflow: auto;
+    max-height: calc(85vh - 100px);
+  }
+  
+  .map-content {
+    font-family: 'Courier New', Courier, monospace !important; /* 强制使用等宽字体 */
+    font-size: 12px;
+    line-height: 1.2; /* 减小行高，让ASCII字符更紧凑 */
+    white-space: pre !important; /* 严格保持空格和换行，不自动换行 */
+    word-wrap: normal !important; /* 禁止单词换行 */
+    overflow-x: auto; /* 允许横向滚动 */
+    color: #ddbb99;
+    letter-spacing: 0; /* 确保字符间距为0 */
   }
   
   .pc-cmd-grid {

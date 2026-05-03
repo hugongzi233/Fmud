@@ -203,6 +203,10 @@ const mudAppOptions = {
       this.guiActions2 = [];
       this.guiTab = 'main';
     },
+    closeMap() {
+      this.showMap = false;
+      this.mapHtml = '';
+    },
     appendChat(text) {
       if (!stripAnsiLike(text)) return;
       const html = renderMudText(text, this.gameState.ansi, { mode: this.settings.mode });
@@ -1109,13 +1113,18 @@ const mudAppOptions = {
             //  不要修改 kind，保持原有的 001 类型
           } else {
             // 否则使用原有的 GUI 弹窗逻辑
-            this.showGui = true;
-            this.guiTitle = extractGuiTitle(payload);
-            this.guiTitleHtml = renderMudText(this.guiTitle, createAnsiState(), { mode: 'dark' });
-            this.guiColumns = 3;
             const processedPayload = payload.replace(/\$br#/g, '\n');
-            this.guiHtml = renderMudText(processedPayload, createAnsiState(), { mode: 'dark' });
-            this.guiTab = 'content';
+            const renderedHtml = renderMudText(processedPayload, createAnsiState(), { mode: 'dark' });
+            
+            // 只有当有实际内容时才显示GUI弹窗
+            if (renderedHtml && renderedHtml.trim() !== '') {
+              this.showGui = true;
+              this.guiTitle = extractGuiTitle(payload);
+              this.guiTitleHtml = renderMudText(this.guiTitle, createAnsiState(), { mode: 'dark' });
+              this.guiColumns = 3;
+              this.guiHtml = renderedHtml;
+              this.guiTab = 'content';
+            }
           }
           return;
         }
@@ -1129,10 +1138,13 @@ const mudAppOptions = {
             //  不要修改 kind，保持原有的 001 类型
           } else {
             // 否则使用原有的 GUI 弹窗逻辑
-            this.showGui = true;
-            this.guiColumns = parsed.columns || 3;
-            this.guiActions1 = parsed.items;
-            this.guiTab = 'actions';
+            // 只有当有实际按钮时才显示GUI弹窗
+            if (parsed.items && parsed.items.length > 0) {
+              this.showGui = true;
+              this.guiColumns = parsed.columns || 3;
+              this.guiActions1 = parsed.items;
+              this.guiTab = 'actions';
+            }
           }
           return;
         }
@@ -1146,20 +1158,26 @@ const mudAppOptions = {
             this.actionBlocks[0].guiColumns = parsed.columns || 3;
           } else {
             // 否则使用原有的 GUI 弹窗逻辑
-            this.showGui = true;
-            this.guiColumns = parsed.columns || 3;
-            this.guiActions2 = parsed.items;
-            this.guiTab = 'actions';
+            // 只有当有实际按钮时才显示GUI弹窗
+            if (parsed.items && parsed.items.length > 0) {
+              this.showGui = true;
+              this.guiColumns = parsed.columns || 3;
+              this.guiActions2 = parsed.items;
+              this.guiTab = 'actions';
+            }
           }
           return;
         }
         case '010':
           this.dialog = parseDialog(payload);
           return;
-        case '011':
-          this.mapHtml = renderMudText(payload, this.gameState.ansi, { mode: this.settings.mode });
+        case '011': {
+          // 地图数据需要先转换$br#为换行符，再渲染ANSI
+          const processedPayload = payload.replace(/\$br#/g, '\n');
+          this.mapHtml = renderMudText(processedPayload, this.gameState.ansi, { mode: this.settings.mode });
           this.showMap = true;
           return;
+        }
         case '012': {
           const parsed = parseStatusBars(payload);
           // 使用splice确保Vue响应式更新
